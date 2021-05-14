@@ -1,0 +1,17 @@
+name: odg
+channels:
+  - conda-forge
+dependencies:
+  - joblib
+  - shapely
+  - intake
+  - pandas
+  - xarray
+  - requests
+  - flake8
+  - isort
+  - erddapy
+  - pytest
+  - ipython
+  - aiohttp
+  - intake-xarray

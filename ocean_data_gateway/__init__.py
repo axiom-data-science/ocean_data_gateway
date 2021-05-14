@@ -1,34 +1,37 @@
+import logging
+from pathlib import Path
+
 try:
     from ._version import __version__
 except ImportError:
     __version__ = "unknown"
 
 
-## make necessary directories ##
+base_path = Path.home() / ".ocean_data_gateway"
+base_path.mkdir(exist_ok=True)
 
-# make base dir in user home directory
-import pathlib
-path_base = pathlib.Path.home().joinpath('.ocean_data_gateway')
-path_base.mkdir(parents=True, exist_ok=True)
+logs_path = base_path / "logs"
+logs_path.mkdir(exist_ok=True)
 
-# make subdirectories too
-path_catalogs = path_base.joinpath('catalogs')
-path_catalogs.mkdir(parents=True, exist_ok=True)
-path_logs = path_base.joinpath('logs')
-path_logs.mkdir(parents=True, exist_ok=True)
-path_variables = path_base.joinpath('variables')
-path_variables.mkdir(parents=True, exist_ok=True)
+catalogs_path = base_path / "catalogs"
+catalogs_path.mkdir(exist_ok=True)
 
+variables_path = base_path / "variables"
+variables_path.mkdir(exist_ok=True)
 
-# import search.search
-from .readers import erddap, axds, local
-from .gateway import Gateway
-# import ocean_data_gateway.readers.erddap
-# import readers.axds
-# import readers.local
-#
-# from .gateway import (gateway)
-# import Data
-# from .ErddapReader import (ErddapReader, region)
-# from .axdsReader import (axdsReader)
-# from .localReader import (localReader)
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter("%(asctime)s %(message)s", "%a %b %d %H:%M:%S %Z %Y")
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.WARNING)
+stream_handler.setFormatter(formatter)
+
+root_log_path = logs_path / f"{__name__}.log"
+file_handler = logging.FileHandler(root_log_path)
+file_handler.setLevel(logging.WARNING)
+file_handler.setFormatter(formatter)
+
+logger.addHandler(stream_handler)
+logger.addHandler(file_handler)
+# warnings are captured and only output to file_handler
+logging.captureWarnings(True)
