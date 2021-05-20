@@ -11,3 +11,31 @@ Your gateway to ocean data.
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://github.com/jbusecke/cookiecutter-science-project">cookiecutter science project template</a>.</small></p>
+
+
+## Installation
+
+Clone the repo:
+``` bash
+$ git clone https://github.com/axiom-data-science/ocean_data_gateway.git
+```
+
+In the `ocean_data_gateway` directory, install conda environment:
+``` bash
+$ conda env create -f environment.yml
+```
+
+For local package install, in the `ocean_data_gateway` directory:
+``` bash
+$ pip install -e .
+```
+
+To also develop this package, install additional packages with:
+``` bash
+$ conda install --file requirements-dev.txt
+```
+
+To then check code before committing and pushing it to github, locally run
+``` bash
+$ pre-commit run --all-files
+```
