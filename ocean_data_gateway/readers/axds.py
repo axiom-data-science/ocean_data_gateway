@@ -51,9 +51,21 @@ class AxdsReader:
         ], 'variable `axds_type` must be "platform2" or "layer_group"'
         self.axds_type = axds_type
 
-        self.url_axds_type = f"{self.url_search_base}&type={self.axds_type}"
-        self.name = f"axds_{axds_type}"
-        self.reader = "AxdsReader"
+        self.url_axds_type = f'{self.url_search_base}&type={self.axds_type}'
+        self.name = f'axds_{axds_type}'
+        self.reader = 'AxdsReader'
+
+        if self.axds_type == 'platform2':
+            self.data_type = 'csv'
+        elif self.axds_type == 'layer_group':
+            self.data_type = 'nc'
+
+        # name
+        self.name = f'axds_{axds_type}'
+
+        self.reader = 'AxdsReader'
+
+
 
     def url_query(self, query):
         return f"&query={query}"
@@ -532,6 +544,25 @@ sources:
 
         return self._data
 
+
+    def save(self):
+        '''save data locally '''
+
+        for dataset_id, data in self.data().items():
+            # dataframe
+            if self.data_type == 'csv':
+                filename = f'{dataset_id}_{self.kw["min_time"]}_{self.kw["max_time"]}.csv.gz'
+                path_file = odg.path_files.joinpath(filename)
+                data.to_csv(path_file)
+
+            # dataset
+            elif self.data_type == 'nc':
+                filename = f'{dataset_id}_{self.kw["min_time"]}_{self.kw["max_time"]}.nc'
+                path_file = odg.path_files.joinpath(filename)
+                data.to_netcdf(path_file)
+
+
+
     def all_variables(self):
         """Not relevant for layer_group"""
 
@@ -624,6 +655,7 @@ sources:
 
         if condition and verbose:
             print("all variables are matches!")
+
 
     # Search for stations by region
 
