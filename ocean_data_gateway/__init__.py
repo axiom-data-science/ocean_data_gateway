@@ -19,6 +19,9 @@ catalogs_path.mkdir(exist_ok=True)
 variables_path = base_path / "variables"
 variables_path.mkdir(exist_ok=True)
 
+files_path = base_path / "files"
+files_path.mkdir(exist_ok=True)
+
 logger = logging.getLogger(__name__)
 formatter = logging.Formatter("%(asctime)s %(message)s", "%a %b %d %H:%M:%S %Z %Y")
 
