@@ -4,9 +4,26 @@ channels:
 dependencies:
   - python=3.7
   ############## These will have to be adjusted to your specific project
+  - jupyter
+  - jupyterlab
   - numpy
   - scipy
+  - dask
+  - netcdf4
+  - matplotlib
+  - joblib
+  - shapely
+  - intake
+  - pandas
   - xarray
+  - requests
+  - flake8
+  - isort
+  - erddapy
+  - pytest
+  - ipython
+  - aiohttp
+  - intake-xarray
   ##############
   - pytest
   - pip:
