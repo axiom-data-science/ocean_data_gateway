@@ -1,5 +1,7 @@
 import logging
+
 from pathlib import Path
+
 
 try:
     from ._version import __version__
