@@ -6,6 +6,7 @@ try:
 except ImportError:
     __version__ = "unknown"
 
+from .readers import axds, erddap, local
 
 base_path = Path.home() / ".ocean_data_gateway"
 base_path.mkdir(exist_ok=True)
