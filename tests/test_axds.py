@@ -5,6 +5,7 @@ import xarray as xr
 
 import ocean_data_gateway as odg
 
+
 # CHECK PARALLEL AND NOT
 # CHECK CATALOG
 # TEST inputting catalog file
