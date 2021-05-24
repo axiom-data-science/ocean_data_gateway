@@ -23,22 +23,24 @@ def test_station_ioos_1dataset_id():
         np.datetime64("2019-01-01T00:00:00.000000000"),
         np.datetime64("2019-01-02T00:00:00.000000000"),
     ]
-#
-#
-# def test_station_ioos_2dataset_ids():
-#     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-#     dataset_ids = ["noaa_nos_co_ops_8771013", "noaa_nos_co_ops_8774230"]
-#     stations = odg.erddap.stations({"dataset_ids": dataset_ids, "kw": kw})
-#     assert stations.dataset_ids == dataset_ids
-#     assert not stations.meta.empty
-#
-#
-# def test_station_ioos_1station():
-#     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-#     stationname = "8771013"
-#     stations = odg.erddap.stations({"stations": stationname, "kw": kw})
-#     assert stations.dataset_ids == ["noaa_nos_co_ops_8771013"]
-#     assert not stations.meta.empty
+
+
+def test_station_ioos_2dataset_ids():
+    kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
+    dataset_ids = ["noaa_nos_co_ops_8771013", "noaa_nos_co_ops_8774230"]
+    stations = odg.erddap.stations({"dataset_ids": dataset_ids, "kw": kw})
+    assert stations.dataset_ids == dataset_ids
+    assert not stations.meta.empty
+
+
+def test_station_ioos_1station():
+    kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
+    stationname = "8771013"
+    stations = odg.erddap.stations({"stations": stationname, "kw": kw})
+    assert stations.dataset_ids == ["noaa_nos_co_ops_8771013"]
+    assert not stations.meta.empty
+
+
 #
 #
 # def test_station_ioos_2stations():

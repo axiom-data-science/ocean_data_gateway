@@ -39,29 +39,30 @@ def test_station_platforms_1dataset_id():
         np.datetime64("2020-08-01T00:00:00.000000000"),
         np.datetime64("2020-08-02T23:50:21.000000000"),
     ]
-#
-#
-# def test_station_platforms_2dataset_ids():
-#     kw = {"min_time": "2020-9-20", "max_time": "2020-9-20"}
-#     dataset_ids = [
-#         "c61eecf1-1c0e-5287-b6fb-a92b51b14d54",
-#         "7d4ea195-aeda-5c78-aa0d-d4f77ba0ad95",
-#     ]
-#     stations = odg.axds.stations(
-#         {"axds_type": "platform2", "dataset_ids": dataset_ids, "kw": kw}
-#     )
-#     assert stations.dataset_ids == dataset_ids
-#
-#
-# def test_station_platforms_1station():
-#     kw = {"min_time": "2020-8-1", "max_time": "2020-8-2"}
-#     stationname = "ng645-20200730T1909"
-#     dataset_id = "c61eecf1-1c0e-5287-b6fb-a92b51b14d54"
-#     stations = odg.axds.stations(
-#         {"axds_type": "platform2", "stations": stationname, "kw": kw}
-#     )
-#     assert stations.dataset_ids == [dataset_id]
-#
+
+
+def test_station_platforms_2dataset_ids():
+    kw = {"min_time": "2020-9-20", "max_time": "2020-9-20"}
+    dataset_ids = [
+        "c61eecf1-1c0e-5287-b6fb-a92b51b14d54",
+        "7d4ea195-aeda-5c78-aa0d-d4f77ba0ad95",
+    ]
+    stations = odg.axds.stations(
+        {"axds_type": "platform2", "dataset_ids": dataset_ids, "kw": kw}
+    )
+    assert stations.dataset_ids == dataset_ids
+
+
+def test_station_platforms_1station():
+    kw = {"min_time": "2020-8-1", "max_time": "2020-8-2"}
+    stationname = "ng645-20200730T1909"
+    dataset_id = "c61eecf1-1c0e-5287-b6fb-a92b51b14d54"
+    stations = odg.axds.stations(
+        {"axds_type": "platform2", "stations": stationname, "kw": kw}
+    )
+    assert stations.dataset_ids == [dataset_id]
+
+
 #
 # # Test layer_groups, stations
 # def test_station_layer_group_1station_alltime():
