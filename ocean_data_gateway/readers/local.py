@@ -1,3 +1,7 @@
+"""
+Reader for local files.
+"""
+
 import hashlib
 import logging
 import multiprocessing
@@ -19,7 +23,53 @@ reader = "local"
 
 
 class LocalReader:
+    """
+    This class searches local files.
+
+    Attributes
+    ----------
+    parallel: boolean
+        If True, run with simple parallelization using `multiprocessing`.
+        If False, run serially.
+    catalog_name: string
+        Input catalog path if you want to use an existing catalog.
+    filenames: string, list
+        Specific file locations from which to read data.
+    kw: dict, optional
+      Contains space and time search constraints: `min_lon`, `max_lon`,
+      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    name: string
+        f'axds_{axds_type}' so 'axds_platform2' or 'axds_layer_group'
+    reader: string
+        Reader name: AxdsReader
+
+    TO DO: Can this reader be used for remote datasets but for
+    which we know the specific file location?
+    """
+
     def __init__(self, parallel=True, catalog_name=None, filenames=None, kw=None):
+        """
+        Inputs
+        ------
+        parallel: boolean, optional
+            If True, run with simple parallelization using `multiprocessing`.
+            If False, run serially.
+        catalog_name: string, optional
+            Input catalog path if you want to use an existing catalog.
+        filenames: string, list
+            Specific file locations from which to read data.
+        kw: dict
+            Contains space and time search constraints: `min_lon`, `max_lon`,
+            `min_lat`, `max_lat`, `min_time`, `max_time`.
+
+        Notes
+        -----
+        All input data is currently used, regardless of whether `kw` is input
+        with constraints on lon, lat, or time.
+
+        There is no real difference between searching with `region` or
+        `stations` for this reader.
+        """
 
         self.parallel = parallel
 
@@ -54,6 +104,7 @@ class LocalReader:
         self.reader = "LocalReader"
 
     def write_catalog(self):
+        """Write catalog file."""
 
         # if the catalog already exists, don't do this
         if os.path.exists(self.catalog_name):
@@ -145,6 +196,7 @@ class LocalReader:
 
     @property
     def catalog(self):
+        """Write then open catalog."""
 
         if not hasattr(self, "_catalog"):
 
@@ -156,7 +208,13 @@ class LocalReader:
 
     @property
     def dataset_ids(self):
-        """Find dataset_ids for server."""
+        """Find dataset_ids for catalog.
+
+        Notes
+        -----
+        The dataset_ids are read from the catalog, so the catalog is created
+        before this can happen.
+        """
 
         if not hasattr(self, "_dataset_ids"):
             self._dataset_ids = list(self.catalog)
@@ -164,7 +222,10 @@ class LocalReader:
         return self._dataset_ids
 
     def meta_by_dataset(self, dataset_id):
-        """Should this return intake-style or a row of the metadata dataframe?"""
+        """Return the catalog metadata for a single dataset_id.
+
+        TODO: Should this return intake-style or a row of the metadata dataframe?
+        """
 
         return self.catalog[dataset_id]
 
@@ -198,7 +259,18 @@ class LocalReader:
         return self._meta
 
     def data_by_dataset(self, dataset_id):
-        """SHOULD I INCLUDE TIME RANGE?"""
+        """Return the data for a single dataset_id.
+
+        Returns
+        -------
+        A tuple of (dataset_id, data), where data type is a pandas DataFrame.
+
+        Notes
+        -----
+        Data is read into memory.
+
+        TODO: SHOULD I INCLUDE TIME RANGE?
+        """
 
         data = self.catalog[dataset_id].read()
         #         data = data.set_index('time')
@@ -210,10 +282,18 @@ class LocalReader:
 
     # @property
     def data(self):
-        """Do I need to worry about intake caching?
+        """Read in data for all dataset_ids.
 
-        Data will be dataframes for csvs and
-        Datasets for netcdf files.
+        Returns
+        -------
+        A dictionary with keys of the dataset_ids and values the data of type:
+        * If `filename` is a csv file: a pandas DataFrame
+        * If `filename` is a netcdf file: an xarray Dataset
+
+        Notes
+        -----
+        This is either done in parallel with the `multiprocessing` library or
+        in serial.
         """
 
         if not hasattr(self, "_data"):
@@ -240,10 +320,36 @@ class LocalReader:
 
 
 class region(LocalReader):
-    #     def region(self, kw, variables=None):
-    #         '''HOW TO INCORPORATE VARIABLE NAMES?'''
+    """Inherits from LocalReader to search over a region of space and time.
+
+    Attributes
+    ----------
+    kw: dict
+      Contains space and time search constraints: `min_lon`, `max_lon`,
+      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    variables: string or list
+      Variable names if you want to limit the search to those. This is currently
+       ignored.
+    approach: string
+        approach is defined as 'region' for this class.
+    """
 
     def __init__(self, kwargs):
+        """
+        Inputs
+        ------
+        kwargs: dict
+            Can contain arguments to pass onto the base AxdsReader class
+            (catalog_name, parallel, filenames). The dict entries to initialize
+            this class are:
+            * kw: dict
+              Contains space and time search constraints: `min_lon`, `max_lon`,
+              `min_lat`, `max_lat`, `min_time`, `max_time`. Not used to filter
+              data currently.
+            * variables: string or list, optional
+              Variable names if you want to limit the search to those. This is
+              not used to filter data currently.
+        """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         lo_kwargs = {
             "catalog_name": kwargs.get("catalog_name", None),
@@ -263,28 +369,36 @@ class region(LocalReader):
         # check for lon/lat values and time
         self.kw = kw
 
-        # #         self.data_type = data_type
         if (variables is not None) and (not isinstance(variables, list)):
             variables = [variables]
-
-        # make sure variables are on parameter list
-        if variables is not None:
-            self.check_variables(variables)
 
         self.variables = variables
 
 
-#         # DOESN'T CURRENTLY LIMIT WHICH VARIABLES WILL BE FOUND ON EACH SERVER
-
-#         return self
-
-
 class stations(LocalReader):
-    #     def stations(self, dataset_ids=None, stations=None, kw=None):
-    #         '''
-    #         '''
+    """Inherits from LocalReader to search for 1+ stations or dataset_ids.
+
+    Attributes
+    ----------
+    kw: dict
+      Contains space and time search constraints: `min_lon`, `max_lon`,
+      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    approach: string
+        approach is defined as 'stations' for this class.
+    """
 
     def __init__(self, kwargs):
+        """
+        Inputs
+        ------
+        kwargs: dict
+            Can contain arguments to pass onto the base LocalReader class
+            (catalog_name, parallel, filenames). The dict entries to initialize
+            this class are:
+            * kw: dict, optional
+              Contains space and time search constraints: `min_lon`, `max_lon`,
+              `min_lat`, `max_lat`, `min_time`, `max_time`.
+        """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         loc_kwargs = {
             "catalog_name": kwargs.get("catalog_name", None),
@@ -296,37 +410,8 @@ class stations(LocalReader):
         kw = kwargs.get("kw", None)
         self.approach = "stations"
 
-        # #         self.catalog_name = os.path.join('..','catalogs',f'catalog_stations_{pd.Timestamp.now().isoformat()[:19]}.yml')
-
-        # #         # we want all the data associated with stations
-        # #         self.standard_names = None
-
-        #         # UPDATE SINCE NOW THERE IS A DIFFERENCE BETWEEN STATION AND DATASET
-        #         if dataset_ids is not None:
-        #             if not isinstance(dataset_ids, list):
-        #                 dataset_ids = [dataset_ids]
-        # #             self._stations = dataset_ids
-        #             self._dataset_ids = dataset_ids
-
-        # #         assert (if dataset_ids is not None)
-        #         # assert that dataset_ids can't be something if axds_type is layer_group
-        #         # use stations instead, and don't use module uuid, use layer_group uuid
-
-        #         if stations is not None:
-        #             if not isinstance(stations, list):
-        #                 stations = [stations]
-        #         self._stations = stations
-
-        #         self.dataset_ids
-
         # CHECK FOR KW VALUES AS TIMES
         if kw is None:
             kw = {"min_time": "1900-01-01", "max_time": "2100-12-31"}
 
         self.kw = kw
-
-
-#         print(self.kwself.)
-
-
-#         return self

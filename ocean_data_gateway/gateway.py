@@ -1,3 +1,7 @@
+"""
+This controls and connects to the individual readers.
+"""
+
 import ocean_data_gateway as odg
 
 
@@ -26,7 +30,64 @@ OPTIONS = {
 
 
 class Gateway(object):
+    """
+    Wraps together the individual readers in order to have a single way to
+    search.
+
+    Attributes
+    ----------
+    kwargs_all: dict
+        Input keyword arguments that are not specific to one of the readers.
+        These may include "approach", "parallel", "kw" containing the time and
+        space region to search for, etc.
+    kwargs: dict
+        Keyword arguments that contain specific arguments for the readers.
+    """
+
     def __init__(self, **kwargs):
+        """
+        Inputs
+        ------
+        kw: dict
+          Contains space and time search constraints: `min_lon`, `max_lon`,
+          `min_lat`, `max_lat`, `min_time`, `max_time`.
+        approach: string
+            approach is defined as 'stations' or 'region' depending on user
+            choice.
+        parallel: boolean, optional
+            If True, run with simple parallelization using `multiprocessing`.
+            If False, run serially. True by default. If input in this manner,
+            the same value is used for all readers. If input by individual
+            reader dictionary, the value can vary by reader.
+        readers: ocean_data_gateway Reader, list of readers, optional
+            Use this to use fewer than the full set of readers. For example,
+            `readers=odg.erddap` or to specifically include all by name
+            `readers = [odg.ErddapReader, odg.axdsReader, odg.localReader]`.
+        erddap: dict, optional
+            Dictionary of reader specifications. For example,
+            `erddap={'known_server': 'ioos'}`. See odg.erddap.ErddapReader for
+            more input options.
+        axds: dict, optional
+            Dictionary of reader specifications. For example,
+            `axds={'axds_type': 'platform2'}`. See odg.axds.AxdsReader for
+            more input options.
+        local: dict, optional
+            Dictionary of reader specifications. For example,
+            `local={'filenames': filenames}` for a list of filenames.
+            See odg.local.LocalReader for more input options.
+
+        Notes
+        -----
+        To select search variables, input the variable names to each reader
+        individually in the format `erddap={'variables': [list of variables]}`.
+        Make sure that the variable names are correct for each individual
+        reader. Check individual reader docs for more information.
+
+        Input keyword arguments that are not specific to one of the readers will be collected in local dictionary kwargs_all. These may include "approach", "parallel", "kw" containing the time and space region to search for, etc.
+
+        Input keyword arguments that are specific to readers will be collected
+        in local dictionary kwargs.
+        """
         # set up a dictionary for general input kwargs
         exclude_keys = ["erddap", "axds", "local"]
         kwargs_all = {
@@ -58,7 +119,13 @@ class Gateway(object):
 
     @property
     def sources(self):
-        """Set up data sources."""
+        """Set up data sources (readers).
+
+        Notes
+        -----
+        All readers are included by default (readers as listed in _SOURCES). See
+         __init__ for options.
+        """
 
         if not hasattr(self, "_sources"):
 
@@ -171,6 +238,13 @@ class Gateway(object):
 
     @property
     def dataset_ids(self):
+        """Find dataset_ids for each source/reader.
+
+        Returns
+        -------
+        A list of dataset_ids where each entry in the list corresponds to one
+        source/reader, which in turn contains a list of dataset_ids.
+        """
 
         if not hasattr(self, "_dataset_ids"):
 
@@ -187,21 +261,23 @@ class Gateway(object):
     def meta(self):
         """Find and return metadata for datasets.
 
-        Do this by querying each data source function for metadata
-        then use the metadata for quick returns.
+        Returns
+        -------
+        A list with an entry for each reader. Each entry in the list contains
+        a pandas DataFrames of metadata for that reader.
+
+        Notes
+        -----
+        This is done by querying each data source function for metadata and
+        then using the metadata for quick returns.
 
         This will not rerun if the metadata has already been found.
 
-        SEPARATE DATASOURCE FUNCTIONS INTO A PART THAT RETRIEVES THE
+        Different sources have different metadata, though certain attributes
+        are always available.
+
+        TO DO: SEPARATE DATASOURCE FUNCTIONS INTO A PART THAT RETRIEVES THE
         DATASET_IDS AND METADATA AND A PART THAT READS IN THE DATA.
-
-        DIFFERENT SOURCES HAVE DIFFERENT METADATA
-
-        START EVERYTHING BEING REGION BASED BUT LATER MAYBE ADD A STATION
-        OPTION.
-
-        EXPOSE DATASET_IDS?
-
         """
 
         if not hasattr(self, "_meta"):
@@ -218,7 +294,13 @@ class Gateway(object):
 
     @property
     def data(self):
-        """Return the data, given metadata."""
+        """Return the data, given metadata.
+
+        Notes
+        -----
+        This is either done in parallel with the `multiprocessing` library or
+        in serial.
+        """
 
         if not hasattr(self, "_data"):
 

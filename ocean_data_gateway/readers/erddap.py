@@ -1,3 +1,7 @@
+"""
+Reader for ERDDAP servers.
+"""
+
 import logging
 import multiprocessing
 import re
@@ -20,7 +24,52 @@ reader = "erddap"
 
 
 class ErddapReader:
+    """
+    This class searches ERDDAP servers. There are 2 known_servers but
+    others can be input too.
+
+    Attributes
+    ----------
+    parallel: boolean
+        If True, run with simple parallelization using `multiprocessing`.
+        If False, run serially.
+    known_server: string
+        Two ERDDAP servers are built in to be known to this reader: "ioos" and
+        "coastwatch".
+    e: ERDDAP server instance
+    e.protocol: string
+        * "tabledap" (pandas, appropriate for reading as csv)
+        * "griddap" (xarray, appropriate for reading as netcdf)
+    e.server: string
+        Return the server name
+    columns: list
+        Metadata columns
+    name: string
+        "erddap_ioos", "erddap_coastwatch", or a constructed string if the user
+        inputs a new protocol and server.
+    reader: string
+        reader is defined as "ErddapReader".
+    """
+
     def __init__(self, known_server="ioos", protocol=None, server=None, parallel=True):
+        """
+        Inputs
+        ------
+        known_server: string, optional
+            Two ERDDAP servers are built in to be known to this reader:
+            "ioos" and "coastwatch".
+        protocol, server: string, optional
+            For a user-defined ERDDAP server, input the protocol as one of the
+            following:
+            * "tabledap" (pandas, appropriate for reading as csv)
+            * "griddap" (xarray, appropriate for reading as netcdf)
+            and the server address (such as
+            "http://erddap.sensors.ioos.us/erddap" or
+            "http://coastwatch.pfeg.noaa.gov/erddap").
+        parallel: boolean
+            If True, run with simple parallelization using `multiprocessing`.
+            If False, run serially.
+        """
         self.parallel = parallel
 
         # either select a known server or input protocol and server string
@@ -71,13 +120,16 @@ class ErddapReader:
 
         self.reader = "ErddapReader"
 
-    # #         self.data_type = data_type
-    #         self.standard_names = standard_names
-    #         # DOESN'T CURRENTLY LIMIT WHICH VARIABLES WILL BE FOUND ON EACH SERVER
-
     @property
     def dataset_ids(self):
-        """Find dataset_ids for server."""
+        """Find dataset_ids for server.
+
+        Notes
+        -----
+        The dataset_ids are found by querying the metadata through the ERDDAP
+        server. Or, if running with `stations()` and input dataset_ids, they are
+         simply set initially with those values.
+        """
 
         if not hasattr(self, "_dataset_ids"):
 
@@ -129,13 +181,12 @@ class ErddapReader:
 
             # This should be a search for the station names
             elif self.approach == "stations":
-                #             elif self._stations is not None:
 
                 # search by station name for each of stations
                 dataset_ids = []
                 for station in self._stations:
-                    # if station has more than one word, AND will be put between to search for multiple
-                    # terms together
+                    # if station has more than one word, AND will be put between
+                    # to search for multiple terms together.
                     url = self.e.get_search_url(
                         response="csv", items_per_page=5, search_for=station
                     )
@@ -186,6 +237,7 @@ class ErddapReader:
         return self._dataset_ids
 
     def meta_by_dataset(self, dataset_id):
+        """Return the catalog metadata for a single dataset_id."""
 
         info_url = self.e.get_info_url(response="csv", dataset_id=dataset_id)
         try:
@@ -218,17 +270,6 @@ class ErddapReader:
                 item = int(item)
             items.append(item)
 
-        #         if self.standard_names is not None:
-        #             # In case the variable is named differently from the standard names,
-        #             # we back out the variable names here for each dataset. This also only
-        #             # returns those names for which there is data in the dataset.
-        #             varnames = self.e.get_var_by_attr(
-        #                 dataset_id=dataset_id,
-        #                 standard_name=lambda v: v in self.standard_names
-        #             )
-        #         else:
-        #             varnames = None
-
         ## include download link ##
         self.e.dataset_id = dataset_id
         if self.e.protocol == "tabledap":
@@ -258,6 +299,12 @@ class ErddapReader:
 
     @property
     def meta(self):
+        """Rearrange the individual metadata into a dataframe.
+
+        Notes
+        -----
+        This should exclude duplicate entries.
+        """
 
         if not hasattr(self, "_meta"):
 
@@ -295,6 +342,16 @@ class ErddapReader:
         return self._meta
 
     def data_by_dataset(self, dataset_id):
+        """Return the data for a single dataset_id.
+
+        Returns
+        -------
+        A tuple of (dataset_id, data), where data type is a pandas DataFrame
+
+        Notes
+        -----
+        Data is read into memory.
+        """
 
         download_url = self.meta.loc[dataset_id, "download_url"]
         # data variables in ds that are not the variables we searched for
@@ -360,6 +417,18 @@ class ErddapReader:
 
     # @property
     def data(self):
+        """Read in data for all dataset_ids.
+
+        Returns
+        -------
+        A dictionary with keys of the dataset_ids and values the data of type
+        pandas DataFrame.
+
+        Notes
+        -----
+        This is either done in parallel with the `multiprocessing` library or
+        in serial.
+        """
 
         # if not hasattr(self, '_data'):
 
@@ -385,13 +454,61 @@ class ErddapReader:
         # return self._data
 
     def count(self, url):
+        """Small helper function to count len(results) at url."""
         try:
             return len(pd.read_csv(url))
         except:
             return np.nan
 
     def all_variables(self):
-        """Return a list of all possible variables."""
+        """Return a DataFrame of allowed variable names.
+
+        Returns
+        -------
+        DataFrame of variable names and count of how many times they are
+        present in the database.
+
+        Notes
+        -----
+        This list is specific to the given ERDDAP server. If you are using
+        an user-input server, it will have its own `known_server` name and upon
+        running this function the first time, you should get a variable list for
+         that server.
+
+        Example usage
+        -------------
+        >>> import ocean_data_gateway as odg
+        >>> odg.erddap.ErddapReader(known_server='ioos').all_variables()
+                                           count
+        variable
+        air_pressure                        4028
+        air_pressure_10011met_a                2
+        air_pressure_10311ahlm_a               2
+        air_pressure_10311ahlm_a_qc_agg        1
+        air_pressure_10311ahlm_a_qc_tests      1
+        ...                                  ...
+        wind_speed_windbird_qc_agg             1
+        wind_speed_windbird_qc_tests           1
+        wind_to_direction                     55
+        wmo_id                               954
+        z                                  37377
+
+        Or for a different `known_server`:
+        >>> odg.erddap.ErddapReader(known_server='coastwatch').all_variables()
+                      count
+        variable
+        abund_m3          2
+        ac_line           1
+        ac_sta            1
+        adg_412           8
+        adg_412_bias      8
+        ...             ...
+        yeardeployed      1
+        yield             1
+        z                 3
+        z_mean            2
+        zlev              6
+        """
 
         path_name_counts = odg.variables_path.joinpath(
             f"erddap_variable_list_{self.known_server}.csv"
@@ -407,13 +524,15 @@ class ErddapReader:
             # 2 min for coastwatch
             url = f"{self.e.server}/categorize/variableName/index.csv?page=1&itemsPerPage=100000"
             df = pd.read_csv(url)
-            #             counts = []
-            #             for url in df.URL:
-            #                 counts.append(self.count(url))
-            num_cores = multiprocessing.cpu_count()
-            counts = Parallel(n_jobs=num_cores)(
-                delayed(self.count)(url) for url in df.URL
-            )
+            if not self.parallel:
+                counts = []
+                for url in df.URL:
+                    counts.append(self.count(url))
+            else:
+                num_cores = multiprocessing.cpu_count()
+                counts = Parallel(n_jobs=num_cores)(
+                    delayed(self.count)(url) for url in df.URL
+                )
             dfnew = pd.DataFrame()
             dfnew["variable"] = df["Category"]
             dfnew["count"] = counts
@@ -428,8 +547,55 @@ class ErddapReader:
     def search_variables(self, variables):
         """Find valid variables names to use.
 
-        Call with `search_variables()` to return the list of possible names.
-        Call with `search_variables('salinity')` to return relevant names.
+        Inputs
+        ------
+        variables: string, list
+            String or list of strings to use in regex search to find valid
+            variable names.
+
+        Returns
+        -------
+        DataFrame of variable names and count of how many times they are
+        present in the database, sorted by count.
+
+        Notes
+        -----
+        This list is only specific to the ERDDAP server.
+
+        Example usage
+        -------------
+
+        Search for variables that contain the substring 'sal':
+
+        >>> odg.erddap.ErddapReader(known_server='ioos').search_variables('sal')
+                                                        count
+        variable
+        salinity                                          954
+        salinity_qc                                       954
+        sea_water_practical_salinity                      778
+        soil_salinity_qc_agg                              622
+        soil_salinity                                     622
+        ...                                               ...
+        sea_water_practical_salinity_4161sc_a_qc_tests      1
+        sea_water_practical_salinity_6754mc_a_qc_tests      1
+        sea_water_practical_salinity_6754mc_a_qc_agg        1
+        sea_water_practical_salinity_4161sc_a_qc_agg        1
+        sea_water_practical_salinity_10091sc_a              1
+
+        >>>  odg.erddap.ErddapReader(known_server='ioos').search_variables('')
+                                                            count
+        variable
+        time                                                38331
+        longitude                                           38331
+        latitude                                            38331
+        z                                                   37377
+        station                                             37377
+        ...                                                   ...
+        sea_surface_wave_from_direction_elw11a3t01wv_qc...      1
+        sea_surface_wave_from_direction_elw11b2t01wv            1
+        sea_surface_wave_from_direction_elw11b2t01wv_qc...      1
+        sea_surface_wave_from_direction_elw11b2t01wv_qc...      1
+        sea_water_pressure_7263arc_a                            1
         """
 
         if not isinstance(variables, list):
@@ -453,11 +619,74 @@ class ErddapReader:
         return df.loc[matches].sort_values("count", ascending=False)
 
     def check_variables(self, variables, verbose=False):
+        """Checks variables for presence in database list.
+
+        Inputs
+        ------
+        variables: string, list
+            String or list of strings to compare against list of valid
+            variable names.
+        verbose: boolean, optional
+            Print message if variables are matches instead of passing silently.
+
+        Returns
+        -------
+        Nothing is returned. However, there are two types of behavior:
+        * if variables is not a valid variable name(s), an AssertionError is
+          raised and `search_variables(variables)` is run on your behalf to
+          suggest valid variable names to use.
+        * if variables is a valid variable name(s), nothing happens.
+
+        Notes
+        -----
+        This list is specific to the ERDDAP server being used.
+
+        Example usage
+        -------------
+
+        Check if the variable name 'sal' is valid:
+
+        >>> odg.erddap.ErddapReader(known_server='ioos').check_variables('sal')
+        ---------------------------------------------------------------------------
+        AssertionError                            Traceback (most recent call last)
+        <ipython-input-13-f8082c9bfafa> in <module>
+        ----> 1 odg.erddap.ErddapReader(known_server='ioos').check_variables('sal')
+
+        ~/projects/ocean_data_gateway/ocean_data_gateway/readers/erddap.py in check_variables(self, variables, verbose)
+            572         salinity_qc                                       954
+            573         sea_water_practical_salinity                      778
+        --> 574         soil_salinity_qc_agg                              622
+            575         soil_salinity                                     622
+            576         ...                                               ...
+
+        AssertionError: The input variables are not exact matches to ok variables for known_server ioos.
+        Check all parameter group values with `ErddapReader().all_variables()`
+        or search parameter group values with `ErddapReader().search_variables(['sal'])`.
+
+         Try some of the following variables:
+                                                        count
+        variable
+        salinity                                          954
+        salinity_qc                                       954
+        sea_water_practical_salinity                      778
+        soil_salinity_qc_agg                              622
+        soil_salinity                                     622
+        ...                                               ...
+        sea_water_practical_salinity_4161sc_a_qc_tests      1
+        sea_water_practical_salinity_6754mc_a_qc_tests      1
+        sea_water_practical_salinity_6754mc_a_qc_agg        1
+        sea_water_practical_salinity_4161sc_a_qc_agg        1
+        sea_water_practical_salinity_10091sc_a              1
+
+        Check if the variable name 'salinity' is valid:
+
+        >>> odg.erddap.ErddapReader(known_server='ioos').check_variables('salinity')
+
+        """
 
         if not isinstance(variables, list):
             variables = [variables]
 
-        #         parameters = list(self.all_variables().keys())
         parameters = list(self.all_variables().index)
 
         # for a variable to exactly match a parameter
@@ -472,7 +701,6 @@ class ErddapReader:
                      \nCheck all parameter group values with `ErddapReader().all_variables()` \
                      \nor search parameter group values with `ErddapReader().search_variables({variables})`.\
                      \n\n Try some of the following variables:\n{str(self.search_variables(variables))}"  # \
-        #                      \nor run `ErddapReader().check_variables("{variables}")'
         assert condition, assertion
 
         if condition and verbose:
@@ -481,7 +709,37 @@ class ErddapReader:
 
 # Search for stations by region
 class region(ErddapReader):
+    """Inherits from ErddapReader to search over a region of space and time.
+
+    Attributes
+    ----------
+    kw: dict
+      Contains space and time search constraints: `min_lon`, `max_lon`,
+      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    variables: string or list
+      Variable names if you want to limit the search to those. The variable name
+       or names must be from the list available in `all_variables()` for the
+       specific ERDDAP server and pass the check in `check_variables()`.
+    approach: string
+        approach is defined as 'region' for this class.
+    """
+
     def __init__(self, kwargs):
+        """
+        Inputs
+        ------
+        kwargs: dict
+            Can contain arguments to pass onto the base ErddapReader class
+            (known_server, protocol, server, parallel). The dict entries to
+            initialize this class are:
+            * kw: dict
+              Contains space and time search constraints: `min_lon`, `max_lon`,
+              `min_lat`, `max_lat`, `min_time`, `max_time`.
+            * variables: string or list, optional
+              Variable names if you want to limit the search to those. The variable name
+               or names must be from the list available in `all_variables()` for the
+               specific ERDDAP server and pass the check in `check_variables()`.
+        """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
             "known_server": kwargs.get("known_server", "ioos"),
@@ -511,26 +769,50 @@ class region(ErddapReader):
         self.variables = variables
 
 
-# #         self.data_type = data_type
-#         if not isinstance(standard_names, list):
-#             standard_names = [standard_names]
-#         self.standard_names = standard_names
-# DOESN'T CURRENTLY LIMIT WHICH VARIABLES WILL BE FOUND ON EACH SERVER
-
-#     return self
-
-
 class stations(ErddapReader):
-    #     def stations(self, dataset_ids=None, stations=None, kw=None):
-    #         '''
-    #         Use keyword dataset_ids if you already know the database-
-    #         specific ids. Otherwise, use the keyword stations and the
-    #         database-specific ids will be searched for. The station
-    #         ids can be input as something like "TABS B" and will be
-    #         searched for as "TABS AND B" and has pretty good success.
-    #         '''
+    """Inherits from ErddapReader to search for 1+ stations or dataset_ids.
+
+    Attributes
+    ----------
+    kw: dict
+      Contains space and time search constraints: `min_lon`, `max_lon`,
+      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    variables: None
+        variables is None for this class since we read search by dataset_id or
+        station name.
+    approach: string
+        approach is defined as 'stations' for this class.
+    """
 
     def __init__(self, kwargs):
+        """
+        Inputs
+        ------
+        kwargs: dict
+            Can contain arguments to pass onto the base ErddapReader class
+            (known_server, protocol, server, parallel). The dict entries to
+            initialize this class are:
+            * kw: dict, optional
+              Contains time search constraints: `min_time`, `max_time`.
+              If not input, all time will be used.
+            * dataset_ids: string, list, optional
+              Use this option if you know the exact dataset_ids for the data
+              you want. These need to be the dataset_ids corresponding to the
+              databases that are being searched, so in this case they need to be
+               the ERDDAP server's dataset_ids. If you know station names but
+              not the specific database uuids, input the names as "stations"
+              instead.
+            * stations: string, list, optional
+              Input station names as they might be commonly known and therefore
+              can be searched for as a query term. The station names can be
+              input as something like "TABS B" or "8771972" and has pretty good
+              success.
+
+        Notes
+        -----
+        The known_server needs to match the station name or dataset_id you are
+        searching for.
+        """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
             "known_server": kwargs.get("known_server", "ioos"),
@@ -547,7 +829,6 @@ class stations(ErddapReader):
         self.approach = "stations"
 
         # we want all the data associated with stations
-        #         self.standard_names = None
         self.variables = None
 
         if dataset_ids is not None:

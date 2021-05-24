@@ -1,6 +1,12 @@
+"""
+Search through multiple ERDDAP and Axiom databases for datasets.
+"""
+
 import logging
 
 from pathlib import Path
+
+from .readers import axds, erddap, local
 
 
 try:
@@ -8,7 +14,6 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from .readers import axds, erddap, local
 
 base_path = Path.home() / ".ocean_data_gateway"
 base_path.mkdir(exist_ok=True)
