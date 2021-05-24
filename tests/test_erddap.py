@@ -50,22 +50,22 @@ def test_station_ioos_2stations():
     assert not stations.meta.empty
 
 
-def test_region_coastwatch():
-    kw = {
-        "min_time": "2019-1-1",
-        "max_time": "2019-1-2",
-        "min_lon": -99,
-        "max_lon": -88,
-        "min_lat": 20,
-        "max_lat": 30,
-    }
-    variables = ["water_u", "water_v"]
-    region = odg.erddap.region(
-        {"kw": kw, "variables": variables, "known_server": "coastwatch"}
-    )
-    assert "ucsdHfrE1" in region.dataset_ids
-    # assert sorted(region.dataset_ids) == ['ucsdHfrE1', 'ucsdHfrE2', 'ucsdHfrE6']
-    assert not region.meta.empty
+# def test_region_coastwatch():
+#     kw = {
+#         "min_time": "2019-1-1",
+#         "max_time": "2019-1-2",
+#         "min_lon": -99,
+#         "max_lon": -88,
+#         "min_lat": 20,
+#         "max_lat": 30,
+#     }
+#     variables = ["water_u", "water_v"]
+#     region = odg.erddap.region(
+#         {"kw": kw, "variables": variables, "known_server": "coastwatch"}
+#     )
+#     assert "ucsdHfrE1" in region.dataset_ids
+#     # assert sorted(region.dataset_ids) == ['ucsdHfrE1', 'ucsdHfrE2', 'ucsdHfrE6']
+#     assert not region.meta.empty
 
 
 #
