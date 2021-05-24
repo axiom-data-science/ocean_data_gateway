@@ -16,8 +16,7 @@ In either case, make sure to add an entry in the ``.. toctree::``. Check out ``i
 .. toctree::
    :maxdepth: 2
 
-   new_section
-   new_section_notebook
+   demo
    api
 
 

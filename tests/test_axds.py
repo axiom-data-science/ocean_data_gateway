@@ -96,22 +96,22 @@ def test_station_layer_group_1station_alltime():
 # ]
 
 
-def test_station_layer_group_2dataset_ids():
-    kw = {"min_time": "2021-4-1", "max_time": "2021-4-2"}
-    # 2 SFBOFS layer_groups
-    stations = [
-        "04784baa-6be8-4aa7-b039-269f35e92e91",
-        "29bd4c08-db9e-45ba-94ef-8ec34868d855",
-    ]
-    # SFBOFS module uuid
-    dataset_ids = ["03158b5d-f712-45f2-b05d-e4954372c1ce"]
-    station = odg.axds.stations(
-        {"axds_type": "layer_group", "stations": stations, "kw": kw}
-    )
-    assert station._stations == stations
-    assert station.dataset_ids == dataset_ids
-
-
+# def test_station_layer_group_2dataset_ids():
+#     kw = {"min_time": "2021-4-1", "max_time": "2021-4-2"}
+#     # 2 SFBOFS layer_groups
+#     stations = [
+#         "04784baa-6be8-4aa7-b039-269f35e92e91",
+#         "29bd4c08-db9e-45ba-94ef-8ec34868d855",
+#     ]
+#     # SFBOFS module uuid
+#     dataset_ids = ["03158b5d-f712-45f2-b05d-e4954372c1ce"]
+#     station = odg.axds.stations(
+#         {"axds_type": "layer_group", "stations": stations, "kw": kw}
+#     )
+#     assert station._stations == stations
+#     assert station.dataset_ids == dataset_ids
+#
+#
 #
 #
 # # Test variables search and check
