@@ -1,4 +1,6 @@
 name: ocean_data_gateway_docs
+channels:
+  - conda-forge
 dependencies:
    - python=3.8
    # If your docs code examples depend on other packages add them here
