@@ -1,3 +1,7 @@
+"""
+Reader for Axiom databases.
+"""
+
 import hashlib
 import logging
 import multiprocessing
@@ -23,7 +27,49 @@ reader = "axds"
 
 
 class AxdsReader:
+    """
+    This class searches Axiom databases for types `platforms2`, which
+    are like gliders, and `layer_group`, which are like grids and models.
+
+    Attributes
+    ----------
+    parallel: boolean
+        If True, run with simple parallelization using `multiprocessing`.
+        If False, run serially.
+    catalog_name: string
+        Input catalog path if you want to use an existing catalog.
+    axds_type: string
+        Which Axiom database type to search for.
+        * "platform2" (default): gliders, drifters; result in pandas DataFrames
+        * "layer_group": grids, model output; result in xarray Datasets
+    url_search_base: string
+        Base string of search url
+    url_docs_base: string
+        Base string of url for a known dataset_id
+    search_headers: dict
+        Required for reading in the request
+    url_axds_type: string
+        Url for the given `axds_type`.
+    name: string
+        f'axds_{axds_type}' so 'axds_platform2' or 'axds_layer_group'
+    reader: string
+        Reader name: AxdsReader
+    """
+
     def __init__(self, parallel=True, catalog_name=None, axds_type="platform2"):
+        """
+        Inputs
+        ------
+        parallel: boolean, optional
+            If True, run with simple parallelization using `multiprocessing`.
+            If False, run serially.
+        catalog_name: string, optional
+            Input catalog path if you want to use an existing catalog.
+        axds_type: string, optional
+            Which Axiom database type to search for.
+            * "platform2" (default): gliders, drifters; result in pandas DataFrames
+            * "layer_group": grids, model output; result in xarray Datasets
+        """
 
         self.parallel = parallel
 
@@ -67,14 +113,51 @@ class AxdsReader:
         self.reader = "AxdsReader"
 
     def url_query(self, query):
+        """url modification to add query field.
+
+        Inputs
+        ------
+        query: string
+            String to query for. Can be multiple words.
+
+        Returns
+        -------
+        Modification for url to add query field.
+        """
         return f"&query={query}"
 
     def url_variable(self, variable):
-        """by parameter group"""
+        """url modification to add variable search.
+
+        Inputs
+        ------
+        variable: string
+            String to search for.
+
+        Returns
+        -------
+        Modification for url to add variable search.
+
+        Notes
+        -----
+        This variable search is specifically by parameter group and
+        only works for `axds_type='platform2'`.
+        For `axds_type='layer_group'`, use `url_query` with the variable name.
+        """
         return f"&tag=Parameter+Group:{variable}"
 
     def url_region(self):
-        # add lonlat filtering
+        """url modification to add spatial search box.
+
+        Returns
+        -------
+        Modification for url to add lon/lat filtering.
+
+        Notes
+        -----
+        Uses the `kw` dictionary already stored in the class object
+        to access the spatial limits of the box.
+        """
         url_add_box = (
             f'&geom={{"type":"Polygon","coordinates":[[[{self.kw["min_lon"]},{self.kw["min_lat"]}],'
             + f'[{self.kw["max_lon"]},{self.kw["min_lat"]}],'
@@ -85,7 +168,17 @@ class AxdsReader:
         return f"{url_add_box}"
 
     def url_time(self):
-        # add time filtering
+        """url modification to add time filtering.
+
+        Returns
+        -------
+        Modification for url to add time filtering.
+
+        Notes
+        -----
+        Uses the `kw` dictionary already stored in the class object
+        to access the time limits of the search.
+        """
         # convert input datetime to seconds since 1970
         startDateTime = (
             pd.Timestamp(self.kw["min_time"]).tz_localize("UTC")
@@ -102,6 +195,17 @@ class AxdsReader:
         return f"{url_add_time}"
 
     def url_dataset_id(self, dataset_id):
+        """url modification to search for known dataset_id.
+
+        Inputs
+        ------
+        dataset_id: string
+            String of dataset_id to exactly match.
+
+        Returns
+        -------
+        Modification for url to search for dataset_id.
+        """
         return f"&id={dataset_id}"
 
     def url_builder(
@@ -113,6 +217,39 @@ class AxdsReader:
         variable=None,
         query=None,
     ):
+        """Build an individual search url.
+
+        Inputs
+        ------
+        url_base: string
+            There are 2 possible bases for the url:
+            * self.url_axds_type, for searching
+            * self.url_docs_base, for selecting known dataset by dataset_id
+        dataset_id: string, optional
+            dataset_id of station, if known.
+        add_region: boolean, optional
+            True to filter the search by lon/lat box. Requires self.kw
+            that contains keys `min_lon`, `max_lon`, `min_lat`, `max_lat`.
+        add_time: boolean, optional
+            True to filter the search by time range. Requires self.kw
+            that contains keys `min_time` and `max_time`.
+        variable: string, optional
+            String of variable description to filter by, if desired.
+            If `axds_type=='platform2'`, find the variable name options with
+            class function `all_variables()`, search for variable names by
+            string with `search_variables()`, and check your variable list with
+            `check_variables()`.
+            If `axds_type=='layer_group'`, there is no official variable list
+            and you can instead just put in a basic variable name and hope the
+            search works.
+        query: string, optional
+            This could be any search query you want, but it is used in the code
+            to search for station names (not dataset_ids).
+
+        Returns
+        -------
+        Url for search.
+        """
         url = url_base
         if dataset_id is not None:
             url += self.url_dataset_id(dataset_id)
@@ -132,7 +269,14 @@ class AxdsReader:
 
     @property
     def urls(self):
-        """make a list of urls for stations mode."""
+        """Return a list of search urls.
+
+        Notes
+        -----
+        Use this through the class methods `region` or `stations` to put
+        together the searl urls to represent the basic reader setup.
+        """
+
         assert (
             self.approach is not None
         ), "Use this property through class method `region` or `stations`"
@@ -177,10 +321,21 @@ class AxdsReader:
 
     @property
     def search_results(self):
+        """Loop over self.urls to read in search results.
+
+        Notes
+        -----
+        The logic removes duplicate searches.
+        This returns a dict of the datasets from the search results with the
+        key of each entry being the dataset_id. For
+        * `self.axds_type == "platform2"`: dataset_id is the uuid
+        * `self.axds_type == "layer_group"`: dataset_id is the module_uuid
+           since multiple layer_groups can be linked under one module_uuid
+        """
 
         if not hasattr(self, "_search_results"):
 
-            # loop over urls in case we have stations
+            # loop over urls
             search_results = []
             for url in self.urls:
                 res = requests.get(url, headers=self.search_headers).json()
@@ -227,6 +382,14 @@ class AxdsReader:
     def write_catalog_layer_group_entry(
         self, dataset, dataset_id, urlpath, layer_groups
     ):
+        """Write part of catalog in case of layer_group.
+
+        Notes
+        -----
+        This is used to manage the logic for `axds_type='layer_group'` in which
+        the module is being linked to the set of layer_groups.
+        """
+
         try:
             model_slug = dataset["data"]["model"]["slug"]
         except:
@@ -270,6 +433,7 @@ class AxdsReader:
         return lines
 
     def write_catalog(self):
+        """Write catalog file."""
 
         # if the catalog already exists, don't do this
         if os.path.exists(self.catalog_name):
@@ -387,6 +551,7 @@ sources:
 
     @property
     def catalog(self):
+        """Write then open the catalog."""
 
         if not hasattr(self, "_catalog"):
 
@@ -404,7 +569,15 @@ sources:
 
     @property
     def dataset_ids(self):
-        """Find dataset_ids for server."""
+        """Find dataset_ids for server.
+
+        Notes
+        -----
+        The dataset_ids are read from the catalog, so the catalog is created
+        before this can happen, unless the dataset_ids were input from the
+        beginning of the call via `stations` in which case they are simply
+        saved to self._dataset_ids.
+        """
 
         if not hasattr(self, "_dataset_ids"):
             if self.catalog is not None:
@@ -415,7 +588,10 @@ sources:
         return self._dataset_ids
 
     def meta_by_dataset(self, dataset_id):
-        """Should this return intake-style or a row of the metadata dataframe?"""
+        """Return the catalog metadata for a single dataset_id.
+
+        TO DO: Should this return intake-style or a row of the metadata dataframe?
+        """
 
         return self.catalog[dataset_id]
 
@@ -442,6 +618,21 @@ sources:
         return self._meta
 
     def data_by_dataset(self, dataset_id):
+        """Return the data for a single dataset_id.
+
+        Returns
+        -------
+        A tuple of (dataset_id, data), where data type depends on `self.axds_type`:
+        * If `self.axds_type=='platform2'`: a pandas DataFrame
+        * If `self.axds_type=='layer_group'`: an xarray Dataset
+
+        Notes
+        -----
+        Read behavior depends on `axds_type`:
+        * If `self.axds_type=='platform2'`: data is read into memory with dask.
+        * If `self.axds_type=='layer_group'`: data is pointed to with dask but
+          nothing is read in except metadata associated with the xarray Dataset.
+        """
 
         if self.axds_type == "platform2":
 
@@ -519,7 +710,19 @@ sources:
 
     # @property
     def data(self):
-        """Do I need to worry about intake caching?"""
+        """Read in data for all dataset_ids.
+
+        Returns
+        -------
+        A dictionary with keys of the dataset_ids and values the data of type:
+        * If `self.axds_type=='platform2'`: a pandas DataFrame
+        * If `self.axds_type=='layer_group'`: an xarray Dataset
+
+        Notes
+        -----
+        This is either done in parallel with the `multiprocessing` library or
+        in serial.
+        """
 
         if not hasattr(self, "_data"):
 
@@ -544,7 +747,7 @@ sources:
         return self._data
 
     def save(self):
-        """save data locally """
+        """Save datasets locally."""
 
         for dataset_id, data in self.data().items():
             # dataframe
@@ -564,7 +767,36 @@ sources:
                 data.to_netcdf(path_file)
 
     def all_variables(self):
-        """Not relevant for layer_group"""
+        """Return a DataFrame of allowed variable names.
+
+        Returns
+        -------
+        DataFrame of variable names and count of how many times they are
+        present in the database.
+
+        Notes
+        -----
+        This list is only relevant for `self.axds_type=='platform2'`. It is not
+        relevant for `self.axds_type=='layer_group'.
+
+        Example usage
+        -------------
+        >>> import ocean_data_gateway as odg
+        >>> odg.axds.AxdsReader().all_variables()
+                                                         count
+        variable
+        Ammonium                                            23
+        Atmospheric Pressure: Air Pressure at Sea Level    362
+        Atmospheric Pressure: Barometric Pressure         4152
+        Backscatter Intensity                              286
+        Battery                                           2705
+        ...                                                ...
+        Winds: Samples                                       1
+        Winds: Speed and Direction                        7091
+        Winds: Vertical Wind                                 4
+        Winds: at 10 m                                      18
+        pH                                                 965
+        """
 
         path_fname = odg.variables_path.joinpath("parameter_group_names.txt")
         path_csv_fname = odg.variables_path.joinpath("axds_platform2_variable_list.csv")
@@ -603,8 +835,50 @@ sources:
     def search_variables(self, variables):
         """Find valid variables names to use.
 
-        Call with `search_variables()` to return the list of possible names.
-        Call with `search_variables('salinity')` to return relevant names.
+        Inputs
+        ------
+        variables: string, list
+            String or list of strings to use in regex search to find valid
+            variable names.
+
+        Returns
+        -------
+        DataFrame of variable names and count of how many times they are
+        present in the database, sorted by count.
+
+        Notes
+        -----
+        This list is only relevant for `self.axds_type=='platform2'`. It is not
+        relevant for `self.axds_type=='layer_group'.
+
+        Example usage
+        -------------
+
+        Search for variables that contain the substring 'sal':
+
+        >>> odg.axds.AxdsReader().search_variables('sal')
+                       count
+        variable
+        Salinity        3204
+        Soil Salinity    622
+
+        Return all available variables, sorted by count (or could use
+        `all_variables()` directly):
+
+        >>>  odg.axds.AxdsReader().search_variables('')
+                                                            count
+        variable
+        Stream Height                                       19758
+        Water Surface above Datum                           19489
+        Stream Flow                                         15203
+        Temperature: Air Temperature                         8369
+        Precipitation                                        7364
+        ...                                                   ...
+        Vent Fluid Temperature                                  1
+        Vent Fluid Thermocouple Temperature - Low               1
+        CO2: PPM of Carbon Dioxide in Sea Water in Wet Gas      1
+        CO2: PPM of Carbon Dioxide in Air in Dry Gas            1
+        Evaporation Rate                                        1
         """
 
         if not isinstance(variables, list):
@@ -627,6 +901,62 @@ sources:
         return df.loc[matches].sort_values("count", ascending=False)
 
     def check_variables(self, variables, verbose=False):
+        """Checks variables for presence in database list.
+
+        Inputs
+        ------
+        variables: string, list
+            String or list of strings to compare against list of valid
+            variable names.
+        verbose: boolean, optional
+            Print message if variables are matches instead of passing silently.
+
+        Returns
+        -------
+        Nothing is returned. However, there are two types of behavior:
+        * if variables is not a valid variable name(s), an AssertionError is
+          raised and `search_variables(variables)` is run on your behalf to
+          suggest valid variable names to use.
+        * if variables is a valid variable name(s), nothing happens.
+
+        Notes
+        -----
+        This list is only relevant for `self.axds_type=='platform2'`. It is not
+        relevant for `self.axds_type=='layer_group'.
+
+        Example usage
+        -------------
+
+        Check if the variable name 'sal' is valid:
+
+        >>> odg.axds.AxdsReader().check_variables('sal')
+        ---------------------------------------------------------------------------
+        AssertionError                            Traceback (most recent call last)
+        <ipython-input-11-454838d2e555> in <module>
+        ----> 1 odg.axds.AxdsReader().check_variables('sal')
+
+        ~/projects/ocean_data_gateway/ocean_data_gateway/readers/axds.py in check_variables(self, variables, verbose)
+            878         CO2: PPM of Carbon Dioxide in Air in Dry Gas            1
+            879         Evaporation Rate                                        1
+        --> 880         \"""
+            881
+            882         if not isinstance(variables, list):
+
+        AssertionError: The input variables are not exact matches to parameter groups.
+        Check all parameter group values with `AxdsReader().all_variables()`
+        or search parameter group values with `AxdsReader().search_variables(['sal'])`.
+
+         Try some of the following variables:
+                       count
+        variable
+        Salinity        3204
+        Soil Salinity    622
+
+        Check if the variable name 'Salinity' is valid:
+
+        >>>  odg.axds.AxdsReader().check_variables('Salinity')
+
+        """
 
         assertion = f'Variables are only used to filter the search for \
                     \n`axds_type="platform2". Currently, \
@@ -656,14 +986,47 @@ sources:
         if condition and verbose:
             print("all variables are matches!")
 
-    # Search for stations by region
-
 
 class region(AxdsReader):
-    #     def region(self, kw, axds_type='platform2', variables=None):
-    #         '''HOW TO INCORPORATE VARIABLE NAMES?'''
+    """Inherits from AxdsReader to search over a region of space and time.
+
+    Attributes
+    ----------
+    kw: dict
+      Contains space and time search constraints: `min_lon`, `max_lon`,
+      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    variables: string or list
+      Variable names if you want to limit the search to those. There is
+      different behavior depending on `axds_type`:
+      * 'platform2': the variable name or names must be from the list
+        available in `all_variables()` and pass the check in
+        `check_variables()`.
+      * 'layer_group': the variable name or names will be searched for
+        as a query so just do your best with the names and experiment.
+    approach: string
+        approach is defined as 'region' for this class.
+    """
 
     def __init__(self, kwargs):
+        """
+        Inputs
+        ------
+        kwargs: dict
+            Can contain arguments to pass onto the base AxdsReader class
+            (catalog_name, parallel, axds_type). The dict entries to initialize
+            this class are:
+            * kw: dict
+              Contains space and time search constraints: `min_lon`, `max_lon`,
+              `min_lat`, `max_lat`, `min_time`, `max_time`.
+            * variables: string or list, optional
+              Variable names if you want to limit the search to those. There is
+              different behavior depending on `axds_type`:
+              * 'platform2': the variable name or names must be from the list
+                available in `all_variables()` and pass the check in
+                `check_variables()`.
+              * 'layer_group': the variable name or names will be searched for
+                as a query so just do your best with the names and experiment.
+        """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         ax_kwargs = {
             "catalog_name": kwargs.get("catalog_name", None),
@@ -674,22 +1037,13 @@ class region(AxdsReader):
 
         kw = kwargs["kw"]
         variables = kwargs.get("variables", None)
-
         self.approach = "region"
-
         self._stations = None
-
-        #         # can be 'platform2' or 'layer_group'
-        #         assert axds_type in ['platform2','layer_group'], 'variable `axds_type` must be "platform2" or "layer_group"'
-        #         self.axds_type = axds_type
-
-        #         self.url_axds_type = f'{self.url_search_base}&type={self.axds_type}'
 
         # run checks for KW
         # check for lon/lat values and time
         self.kw = kw
 
-        # #         self.data_type = data_type
         if (variables is not None) and (not isinstance(variables, list)):
             variables = [variables]
 
@@ -700,35 +1054,60 @@ class region(AxdsReader):
         self.variables = variables
 
 
-#         # DOESN'T CURRENTLY LIMIT WHICH VARIABLES WILL BE FOUND ON EACH SERVER
-
-#         return self
-
-
 class stations(AxdsReader):
-    #     def stations(self, dataset_ids=None, stations=None, kw=None, axds_type='platform2'):
-    #         '''
+    """Inherits from AxdsReader to search for 1+ stations or dataset_ids.
 
-    #         Use keyword dataset_ids if you already know the database-
-    #         specific ids. Otherwise, use the keyword stations and the
-    #         database-specific ids will be searched for. The station
-    #         ids can be input as something like "TABS B" and will be
-    #         searched for as "TABS AND B" and has pretty good success.
-
-    #         Treat dataset_ids and stations the same since either way we
-    #         need to search for them. Have both to match the erddap
-    #         syntax.
-
-    #         WHAT ABOUT VARIABLES?
-    #         '''
+    Attributes
+    ----------
+    kw: dict
+        Contains time search constraints: `min_time`, `max_time`.
+        If not input, all time will be used.
+    variables: None
+        variables is None for this class since we read search by dataset_id or
+        station name.
+    approach: string
+        approach is defined as 'stations' for this class.
+    """
 
     def __init__(self, kwargs):
+        """
+        Inputs
+        ------
+        kwargs: dict
+            Can contain arguments to pass onto the base AxdsReader class
+            (catalog_name, parallel, axds_type). The dict entries to initialize
+            this class are:
+            * kw: dict, optional
+              Contains time search constraints: `min_time`, `max_time`.
+              If not input, all time will be used.
+            * dataset_ids: string, list, optional
+              Use this option if you know the exact dataset_ids for the data
+              you want and `axds_type=='platform2'`. These need to be the
+              dataset_ids corresponding to the databases that are being
+              searched, so in this case they need to be the Axiom packrat
+              uuid's. If you know station names but not the specific database
+              uuids, input the names as "stations" instead.
+              If `axds_type=='layer_group'` do not use this approach. Instead,
+              use the keyword "stations" and input the layer_group uuids you
+              want to search for.
+            * stations: string, list, optional
+              Input station names as they might be commonly known and therefore
+              can be searched for as a query term. The station names can be
+              input as something like "TABS B" or "8771972" and has pretty good
+              success.
+
+        Notes
+        -----
+        The axds_type needs to match the station name or dataset_id you are
+        searching for.
+        """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         ax_kwargs = {
             "catalog_name": kwargs.get("catalog_name", None),
             "parallel": kwargs.get("parallel", True),
             "axds_type": kwargs.get("axds_type", "platform2"),
         }
+        # this inherits AxdsReader's attributes and functions into self
         AxdsReader.__init__(self, **ax_kwargs)
 
         kw = kwargs.get("kw", None)
@@ -737,10 +1116,9 @@ class stations(AxdsReader):
 
         self.approach = "stations"
 
-        #         self.catalog_name = os.path.join('..','catalogs',f'catalog_stations_{pd.Timestamp.now().isoformat()[:19]}.yml')
-
-        #         # we want all the data associated with stations
-        #         self.standard_names = None
+        if self.axds_type == "layer_group":
+            assertion = 'Input "layer_group" (not module) uuids as station names, not dataset_ids.'
+            assert dataset_ids is None, assertion
 
         # UPDATE SINCE NOW THERE IS A DIFFERENCE BETWEEN STATION AND DATASET
         if dataset_ids is not None:
@@ -749,17 +1127,10 @@ class stations(AxdsReader):
             #             self._stations = dataset_ids
             self._dataset_ids = dataset_ids
 
-        #         assert (if dataset_ids is not None)
-        # assert that dataset_ids can't be something if axds_type is layer_group
-        # use stations instead, and don't use module uuid, use layer_group uuid
-
         if not stations == []:
             if not isinstance(stations, list):
                 stations = [stations]
         self._stations = stations
-
-        #         self.dataset_ids
-
         self.variables = None
 
         # CHECK FOR KW VALUES AS TIMES
