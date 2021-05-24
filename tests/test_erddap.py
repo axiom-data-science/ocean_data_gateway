@@ -84,18 +84,17 @@ def test_station_ioos_2stations():
 #     assert station.kw == kw
 #     assert isinstance(station.meta, pd.DataFrame)
 #
-
-
-def test_region_ioos():
-    kw = {
-        "min_time": "2019-1-1",
-        "max_time": "2019-1-2",
-        "min_lon": -95,
-        "max_lon": -94,
-        "min_lat": 27,
-        "max_lat": 29,
-    }
-    variables = ["sea_water_practical_salinity"]
-    region = odg.erddap.region({"kw": kw, "variables": variables})
-    assert "tabs_b" in region.dataset_ids
-    assert not region.meta.empty
+#
+# def test_region_ioos():
+#     kw = {
+#         "min_time": "2019-1-1",
+#         "max_time": "2019-1-2",
+#         "min_lon": -95,
+#         "max_lon": -94,
+#         "min_lat": 27,
+#         "max_lat": 29,
+#     }
+#     variables = ["sea_water_practical_salinity"]
+#     region = odg.erddap.region({"kw": kw, "variables": variables})
+#     assert "tabs_b" in region.dataset_ids
+#     assert not region.meta.empty
