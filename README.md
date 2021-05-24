@@ -1,9 +1,10 @@
 ocean_data_gateway
 ==============================
-[![Build Status](https://github.com/axiom-data-science/ocean_data_gateway/workflows/Tests/badge.svg)](https://github.com/axiom-data-science/ocean_data_gateway/actions)
-[![codecov](https://codecov.io/gh/axiom-data-science/ocean_data_gateway/branch/master/graph/badge.svg)](https://codecov.io/gh/axiom-data-science/ocean_data_gateway)
-[![License:MIT](https://img.shields.io/badge/License-MIT-lightgray.svg?style=flt-square)](https://opensource.org/licenses/MIT)[![pypi](https://img.shields.io/pypi/v/ocean_data_gateway.svg)](https://pypi.org/project/ocean_data_gateway)
-<!-- [![conda-forge](https://img.shields.io/conda/dn/conda-forge/ocean_data_gateway?label=conda-forge)](https://anaconda.org/conda-forge/ocean_data_gateway) -->[![Documentation Status](https://readthedocs.org/projects/ocean_data_gateway/badge/?version=latest)](https://ocean_data_gateway.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://img.shields.io/github/workflow/status/axiom-data-science/ocean_data_gateway/Tests?logo=github&style=for-the-badge)](https://github.com/axiom-data-science/ocean_data_gateway/actions)
+[![Code Coverage](https://img.shields.io/codecov/c/github/axiom-data-science/ocean_data_gateway.svg?style=for-the-badge)](https://codecov.io/gh/axiom-data-science/ocean_data_gateway)
+[![License:MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Documentation Status](https://img.shields.io/readthedocs/ocean_data_gateway/latest.svg?style=for-the-badge)](https://ocean_data_gateway.readthedocs.io/en/latest/?badge=latest)
+[![Code Style Status](https://img.shields.io/github/workflow/status/axiom-data-science/ocean_data_gateway/linting%20with%20pre-commit?label=Code%20Style&style=for-the-badge)](https://github.com/axiom-data-science/ocean_data_gateway/actions)
 
 
 Your gateway to ocean data.
