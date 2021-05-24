@@ -10,19 +10,19 @@ def test_station_ioos_1dataset_id_alltime():
     assert station.dataset_ids == ["noaa_nos_co_ops_8771013"]
 
 
-# def test_station_ioos_1dataset_id():
-#     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-#     station = odg.erddap.stations({"dataset_ids": "noaa_nos_co_ops_8771013", "kw": kw})
-#     assert station.kw == {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-#     assert isinstance(station.meta, pd.DataFrame)
-#     data = station.data()
-#     assert isinstance(data["noaa_nos_co_ops_8771013"], pd.DataFrame)
-#     assert list(
-#         data["noaa_nos_co_ops_8771013"].index[[0, -1]].sort_values().values
-#     ) == [
-#         np.datetime64("2019-01-01T00:00:00.000000000"),
-#         np.datetime64("2019-01-02T00:00:00.000000000"),
-#     ]
+def test_station_ioos_1dataset_id():
+    kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
+    station = odg.erddap.stations({"dataset_ids": "noaa_nos_co_ops_8771013", "kw": kw})
+    assert station.kw == {"min_time": "2019-1-1", "max_time": "2019-1-2"}
+    assert isinstance(station.meta, pd.DataFrame)
+    data = station.data()
+    assert isinstance(data["noaa_nos_co_ops_8771013"], pd.DataFrame)
+    assert list(
+        data["noaa_nos_co_ops_8771013"].index[[0, -1]].sort_values().values
+    ) == [
+        np.datetime64("2019-01-01T00:00:00.000000000"),
+        np.datetime64("2019-01-02T00:00:00.000000000"),
+    ]
 #
 #
 # def test_station_ioos_2dataset_ids():
