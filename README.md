@@ -40,3 +40,8 @@ To then check code before committing and pushing it to github, locally run
 ``` bash
 $ pre-commit run --all-files
 ```
+
+Alternatively, you can just install the package plus its requirements from PyPI with
+``` bash
+$ pip install ocean_data_gateway
+```
