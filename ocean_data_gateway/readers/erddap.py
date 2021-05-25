@@ -53,8 +53,8 @@ class ErddapReader:
 
     def __init__(self, known_server="ioos", protocol=None, server=None, parallel=True):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         known_server: string, optional
             Two ERDDAP servers are built in to be known to this reader:
             "ioos" and "coastwatch".
@@ -126,9 +126,7 @@ class ErddapReader:
 
         Notes
         -----
-        The dataset_ids are found by querying the metadata through the ERDDAP
-        server. Or, if running with `stations()` and input dataset_ids, they are
-         simply set initially with those values.
+        The dataset_ids are found by querying the metadata through the ERDDAP server. Or, if running with `stations()` and input dataset_ids, they are simply set initially with those values.
         """
 
         if not hasattr(self, "_dataset_ids"):
@@ -421,8 +419,7 @@ class ErddapReader:
 
         Returns
         -------
-        A dictionary with keys of the dataset_ids and values the data of type
-        pandas DataFrame.
+        A dictionary with keys of the dataset_ids and values the data of type pandas DataFrame.
 
         Notes
         -----
@@ -465,18 +462,17 @@ class ErddapReader:
 
         Returns
         -------
-        DataFrame of variable names and count of how many times they are
-        present in the database.
+        DataFrame of variable names and count of how many times they are present in the database.
 
         Notes
         -----
         This list is specific to the given ERDDAP server. If you are using
         an user-input server, it will have its own `known_server` name and upon
         running this function the first time, you should get a variable list for
-         that server.
+        that server.
 
-        Example usage
-        -------------
+        Examples
+        --------
         >>> import ocean_data_gateway as odg
         >>> odg.erddap.ErddapReader(known_server='ioos').all_variables()
                                            count
@@ -494,6 +490,7 @@ class ErddapReader:
         z                                  37377
 
         Or for a different `known_server`:
+
         >>> odg.erddap.ErddapReader(known_server='coastwatch').all_variables()
                       count
         variable
@@ -547,23 +544,22 @@ class ErddapReader:
     def search_variables(self, variables):
         """Find valid variables names to use.
 
-        Inputs
-        ------
+        Parameters
+        ----------
         variables: string, list
             String or list of strings to use in regex search to find valid
             variable names.
 
         Returns
         -------
-        DataFrame of variable names and count of how many times they are
-        present in the database, sorted by count.
+        DataFrame of variable names and count of how many times they are present in the database, sorted by count.
 
         Notes
         -----
         This list is only specific to the ERDDAP server.
 
-        Example usage
-        -------------
+        Examples
+        --------
 
         Search for variables that contain the substring 'sal':
 
@@ -581,6 +577,8 @@ class ErddapReader:
         sea_water_practical_salinity_6754mc_a_qc_agg        1
         sea_water_practical_salinity_4161sc_a_qc_agg        1
         sea_water_practical_salinity_10091sc_a              1
+
+        Find available variables sorted by count:
 
         >>>  odg.erddap.ErddapReader(known_server='ioos').search_variables('')
                                                             count
@@ -621,8 +619,8 @@ class ErddapReader:
     def check_variables(self, variables, verbose=False):
         """Checks variables for presence in database list.
 
-        Inputs
-        ------
+        Parameters
+        ----------
         variables: string, list
             String or list of strings to compare against list of valid
             variable names.
@@ -632,37 +630,33 @@ class ErddapReader:
         Returns
         -------
         Nothing is returned. However, there are two types of behavior:
-        * if variables is not a valid variable name(s), an AssertionError is
+
+        if variables is not a valid variable name(s), an AssertionError is
           raised and `search_variables(variables)` is run on your behalf to
           suggest valid variable names to use.
-        * if variables is a valid variable name(s), nothing happens.
+        if variables is a valid variable name(s), nothing happens.
 
         Notes
         -----
         This list is specific to the ERDDAP server being used.
 
-        Example usage
-        -------------
-
+        Examples
+        --------
         Check if the variable name 'sal' is valid:
 
         >>> odg.erddap.ErddapReader(known_server='ioos').check_variables('sal')
-        ---------------------------------------------------------------------------
         AssertionError                            Traceback (most recent call last)
         <ipython-input-13-f8082c9bfafa> in <module>
         ----> 1 odg.erddap.ErddapReader(known_server='ioos').check_variables('sal')
-
         ~/projects/ocean_data_gateway/ocean_data_gateway/readers/erddap.py in check_variables(self, variables, verbose)
             572         salinity_qc                                       954
             573         sea_water_practical_salinity                      778
         --> 574         soil_salinity_qc_agg                              622
             575         soil_salinity                                     622
             576         ...                                               ...
-
         AssertionError: The input variables are not exact matches to ok variables for known_server ioos.
         Check all parameter group values with `ErddapReader().all_variables()`
         or search parameter group values with `ErddapReader().search_variables(['sal'])`.
-
          Try some of the following variables:
                                                         count
         variable
@@ -717,28 +711,25 @@ class region(ErddapReader):
       Contains space and time search constraints: `min_lon`, `max_lon`,
       `min_lat`, `max_lat`, `min_time`, `max_time`.
     variables: string or list
-      Variable names if you want to limit the search to those. The variable name
-       or names must be from the list available in `all_variables()` for the
-       specific ERDDAP server and pass the check in `check_variables()`.
+      Variable names if you want to limit the search to those. The variable name or names must be from the list available in `all_variables()` for the specific ERDDAP server and pass the check in `check_variables()`.
     approach: string
         approach is defined as 'region' for this class.
     """
 
     def __init__(self, kwargs):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         kwargs: dict
             Can contain arguments to pass onto the base ErddapReader class
             (known_server, protocol, server, parallel). The dict entries to
             initialize this class are:
+
             * kw: dict
               Contains space and time search constraints: `min_lon`, `max_lon`,
               `min_lat`, `max_lat`, `min_time`, `max_time`.
             * variables: string or list, optional
-              Variable names if you want to limit the search to those. The variable name
-               or names must be from the list available in `all_variables()` for the
-               specific ERDDAP server and pass the check in `check_variables()`.
+              Variable names if you want to limit the search to those. The variable name or names must be from the list available in `all_variables()` for the specific ERDDAP server and pass the check in `check_variables()`.
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
@@ -786,8 +777,8 @@ class stations(ErddapReader):
 
     def __init__(self, kwargs):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         kwargs: dict
             Can contain arguments to pass onto the base ErddapReader class
             (known_server, protocol, server, parallel). The dict entries to

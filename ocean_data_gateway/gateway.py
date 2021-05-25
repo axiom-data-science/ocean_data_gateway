@@ -46,8 +46,8 @@ class Gateway(object):
 
     def __init__(self, **kwargs):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         kw: dict
           Contains space and time search constraints: `min_lon`, `max_lon`,
           `min_lat`, `max_lat`, `min_time`, `max_time`.
@@ -242,8 +242,7 @@ class Gateway(object):
 
         Returns
         -------
-        A list of dataset_ids where each entry in the list corresponds to one
-        source/reader, which in turn contains a list of dataset_ids.
+        A list of dataset_ids where each entry in the list corresponds to one source/reader, which in turn contains a list of dataset_ids.
         """
 
         if not hasattr(self, "_dataset_ids"):
@@ -263,8 +262,7 @@ class Gateway(object):
 
         Returns
         -------
-        A list with an entry for each reader. Each entry in the list contains
-        a pandas DataFrames of metadata for that reader.
+        A list with an entry for each reader. Each entry in the list contains a pandas DataFrames of metadata for that reader.
 
         Notes
         -----

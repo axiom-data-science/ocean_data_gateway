@@ -86,3 +86,20 @@ html_static_path = ["_static"]
 # -- nbsphinx specific options ----------------------------------------------
 # this allows notebooks to be run even if they produce errors.
 nbsphinx_allow_errors = True
+
+# to include init
+# autodoc_default_options = {    'special-members': '__init__'}
+
+# copied from cf-xarray
+autosummary_generate = True
+
+autodoc_typehints = "none"
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": True,
+    "show-inheritance": True,
+    "undoc-members": True,
+    "private-members": True,
+}
+napoleon_use_param = True
+napoleon_use_rtype = True
