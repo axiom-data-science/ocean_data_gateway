@@ -49,8 +49,8 @@ class LocalReader:
 
     def __init__(self, parallel=True, catalog_name=None, filenames=None, kw=None):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         parallel: boolean, optional
             If True, run with simple parallelization using `multiprocessing`.
             If False, run serially.
@@ -287,8 +287,8 @@ class LocalReader:
         Returns
         -------
         A dictionary with keys of the dataset_ids and values the data of type:
-        * If `filename` is a csv file: a pandas DataFrame
-        * If `filename` is a netcdf file: an xarray Dataset
+        If `filename` is a csv file: a pandas DataFrame
+        If `filename` is a netcdf file: an xarray Dataset
 
         Notes
         -----
@@ -329,19 +329,20 @@ class region(LocalReader):
       `min_lat`, `max_lat`, `min_time`, `max_time`.
     variables: string or list
       Variable names if you want to limit the search to those. This is currently
-       ignored.
+      ignored.
     approach: string
         approach is defined as 'region' for this class.
     """
 
     def __init__(self, kwargs):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         kwargs: dict
             Can contain arguments to pass onto the base AxdsReader class
             (catalog_name, parallel, filenames). The dict entries to initialize
             this class are:
+
             * kw: dict
               Contains space and time search constraints: `min_lon`, `max_lon`,
               `min_lat`, `max_lat`, `min_time`, `max_time`. Not used to filter
@@ -389,8 +390,8 @@ class stations(LocalReader):
 
     def __init__(self, kwargs):
         """
-        Inputs
-        ------
+        Parameters
+        ----------
         kwargs: dict
             Can contain arguments to pass onto the base LocalReader class
             (catalog_name, parallel, filenames). The dict entries to initialize
