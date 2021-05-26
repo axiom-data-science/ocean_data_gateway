@@ -5,25 +5,6 @@ This controls and connects to the individual readers.
 import ocean_data_gateway as odg
 
 
-# from search.ErddapReader import ErddapReader
-# from search.axdsReader import axdsReader
-# from search.localReader import localReader
-
-
-# # data functions by data_type
-# DATASOURCES_GRID = [hfradar, seaice_extent, seaice_con]
-# DATASOURCES_SENSOR = [sensors]
-# DATASOURCES_PLATFORM = [sensors, argo]  # has gliders
-
-# GO THROUGH ALL KNOWN SOURCES?
-# SOURCES = [ErddapReader(known_server='ioos'),
-#            ErddapReader(known_server='coastwatch'),
-_SOURCES = [odg.erddap, odg.axds, odg.local]
-
-OPTIONS = {
-    "erddap": {"known_server": ["ioos", "coastwatch"]},
-    "axds": {"axds_type": ["platform2", "layer_group"]},
-}
 
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
 # to skip looking for the datasets
@@ -88,6 +69,12 @@ class Gateway(object):
         Input keyword arguments that are specific to readers will be collected
         in local dictionary kwargs.
         """
+
+        # make sure only known keys are input in kwargs
+        unknown_keys = set(list(kwargs.keys())) - set(odg.keys_kwargs)
+        assertion = f'keys into Gateway {unknown_keys} are unknown.'
+        assert len(unknown_keys) == 0, assertion
+
         # set up a dictionary for general input kwargs
         exclude_keys = ["erddap", "axds", "local"]
         kwargs_all = {
@@ -103,16 +90,16 @@ class Gateway(object):
         assertion = '`approach` has to be "region" or "stations"'
         assert self.kwargs_all["approach"] in ["region", "stations"], assertion
 
-        if "kw" not in self.kwargs_all:
-            kw = {
-                "min_lon": -124.0,
-                "max_lon": -122.0,
-                "min_lat": 38.0,
-                "max_lat": 40.0,
-                "min_time": "2021-4-1",
-                "max_time": "2021-4-2",
-            }
-            self.kwargs_all["kw"] = kw
+        # if "kw" not in self.kwargs_all:
+        #     kw = {
+        #         "min_lon": -124.0,
+        #         "max_lon": -122.0,
+        #         "min_lat": 38.0,
+        #         "max_lat": 40.0,
+        #         "min_time": "2021-4-1",
+        #         "max_time": "2021-4-2",
+        #     }
+        #     self.kwargs_all["kw"] = kw
 
         self.kwargs = kwargs
         self.sources
@@ -123,7 +110,7 @@ class Gateway(object):
 
         Notes
         -----
-        All readers are included by default (readers as listed in _SOURCES). See
+        All readers are included by default (readers as listed in odg._SOURCES). See
          __init__ for options.
         """
 
@@ -135,7 +122,7 @@ class Gateway(object):
                 if not isinstance(SOURCES, list):
                     SOURCES = [SOURCES]
             else:
-                SOURCES = _SOURCES
+                SOURCES = odg._SOURCES
 
             # loop over data sources to set them up
             sources = []
@@ -145,8 +132,8 @@ class Gateway(object):
                 # in case of important options for readers
                 # but the built in options are ignored for a reader
                 # if one is input in kwargs[source.reader]
-                if source.reader in OPTIONS.keys():
-                    reader_options = OPTIONS[source.reader]
+                if source.reader in odg.OPTIONS.keys():
+                    reader_options = odg.OPTIONS[source.reader]
                     reader_key = list(reader_options.keys())[0]
                     # if the user input their own option for this, use it instead
                     # this makes it loop once

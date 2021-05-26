@@ -6,6 +6,7 @@ import logging
 
 from pathlib import Path
 
+from .gateway import Gateway
 from .readers import axds, erddap, local
 
 
@@ -42,7 +43,20 @@ file_handler = logging.FileHandler(root_log_path)
 file_handler.setLevel(logging.WARNING)
 file_handler.setFormatter(formatter)
 
-logger.addHandler(stream_handler)
+# logger.addHandler(stream_handler)
 logger.addHandler(file_handler)
 # warnings are captured and only output to file_handler
 logging.captureWarnings(True)
+
+# all available sources/readers
+_SOURCES = [erddap, axds, local]
+
+# important built-in options for readers
+OPTIONS = {
+    "erddap": {"known_server": ["ioos", "coastwatch"]},
+    "axds": {"axds_type": ["platform2", "layer_group"]},
+}
+
+# Available keys for Gateway
+keys_kwargs = ['approach', 'parallel', 'erddap', 'axds', 'local', 'readers',
+                'kw', 'stations', 'dataset_ids', 'variables']

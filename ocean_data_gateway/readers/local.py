@@ -359,7 +359,7 @@ class region(LocalReader):
         }
         LocalReader.__init__(self, **lo_kwargs)
 
-        kw = kwargs["kw"]
+        kw = kwargs.get("kw", None)
         variables = kwargs.get("variables", None)
 
         self.approach = "region"
