@@ -353,9 +353,18 @@ class AxdsReader:
                     search_results_dict[search_result["uuid"]] = search_result
                 #                     search_results_dict[search_result['data']['uuid']] = search_result
                 if self.axds_type == "layer_group":
-                    # switch to module search results instead of layer_group results
-                    module_uuid = search_result["data"]["module_uuid"]
-                    # don't repeat unnecessarily
+                    # this is in the case that our search results are for a layer_group
+                    if ("module_uuid" in search_result["data"]) and (
+                        search_result["type"] == "layer_group"
+                    ):
+                        # switch to module search results instead of layer_group results
+                        module_uuid = search_result["data"]["module_uuid"]
+                    # this is the case that our searcb results are for a module
+                    elif search_result["type"] == "module":
+                        module_uuid = search_result["data"]["uuid"]
+
+                    # don't repeat unnecessarily, if module_uuid has already
+                    # been included.
                     if module_uuid in search_results_dict.keys():
                         continue
                     else:
@@ -1039,8 +1048,8 @@ class region(AxdsReader):
         if (variables is not None) and (not isinstance(variables, list)):
             variables = [variables]
 
-        # make sure variables are on parameter list
-        if variables is not None:
+        # make sure variables are on parameter list if platform2
+        if (variables is not None) and (self.axds_type == "platform2"):
             self.check_variables(variables)
 
         self.variables = variables
@@ -1108,11 +1117,11 @@ class stations(AxdsReader):
 
         self.approach = "stations"
 
-        if self.axds_type == "layer_group":
-            assertion = 'Input "layer_group" (not module) uuids as station names, not dataset_ids.'
-            assert dataset_ids is None, assertion
+        # I think this isn't true anymore.
+        # if self.axds_type == "layer_group":
+        #     assertion = 'Input "layer_group" (not module) uuids as station names, not dataset_ids.'
+        #     assert dataset_ids is None, assertion
 
-        # UPDATE SINCE NOW THERE IS A DIFFERENCE BETWEEN STATION AND DATASET
         if dataset_ids is not None:
             if not isinstance(dataset_ids, list):
                 dataset_ids = [dataset_ids]

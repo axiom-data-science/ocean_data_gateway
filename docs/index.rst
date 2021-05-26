@@ -10,6 +10,7 @@ Welcome to ocean_data_gateway's documentation!
    :maxdepth: 3
 
    demo
+   details
    api
 
 
