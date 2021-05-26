@@ -5,7 +5,6 @@ This controls and connects to the individual readers.
 import ocean_data_gateway as odg
 
 
-
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
 # to skip looking for the datasets
 
@@ -72,7 +71,7 @@ class Gateway(object):
 
         # make sure only known keys are input in kwargs
         unknown_keys = set(list(kwargs.keys())) - set(odg.keys_kwargs)
-        assertion = f'keys into Gateway {unknown_keys} are unknown.'
+        assertion = f"keys into Gateway {unknown_keys} are unknown."
         assert len(unknown_keys) == 0, assertion
 
         # set up a dictionary for general input kwargs

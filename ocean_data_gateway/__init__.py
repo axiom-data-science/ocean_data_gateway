@@ -58,5 +58,15 @@ OPTIONS = {
 }
 
 # Available keys for Gateway
-keys_kwargs = ['approach', 'parallel', 'erddap', 'axds', 'local', 'readers',
-                'kw', 'stations', 'dataset_ids', 'variables']
+keys_kwargs = [
+    "approach",
+    "parallel",
+    "erddap",
+    "axds",
+    "local",
+    "readers",
+    "kw",
+    "stations",
+    "dataset_ids",
+    "variables",
+]

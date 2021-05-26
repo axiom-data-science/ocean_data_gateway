@@ -354,8 +354,9 @@ class AxdsReader:
                 #                     search_results_dict[search_result['data']['uuid']] = search_result
                 if self.axds_type == "layer_group":
                     # this is in the case that our search results are for a layer_group
-                    if ("module_uuid" in search_result["data"]) and \
-                       (search_result["type"] == "layer_group"):
+                    if ("module_uuid" in search_result["data"]) and (
+                        search_result["type"] == "layer_group"
+                    ):
                         # switch to module search results instead of layer_group results
                         module_uuid = search_result["data"]["module_uuid"]
                     # this is the case that our searcb results are for a module
@@ -1048,7 +1049,7 @@ class region(AxdsReader):
             variables = [variables]
 
         # make sure variables are on parameter list if platform2
-        if (variables is not None) and (self.axds_type == 'platform2'):
+        if (variables is not None) and (self.axds_type == "platform2"):
             self.check_variables(variables)
 
         self.variables = variables
