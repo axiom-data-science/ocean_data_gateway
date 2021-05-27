@@ -120,6 +120,55 @@ class ErddapReader:
 
         self.reader = "ErddapReader"
 
+    def find_dataset_id_from_station(self, station):
+        """Find dataset_id from station name.
+
+        Parameters
+        ----------
+        station: string
+            Station name for which to search for dataset_id
+        """
+
+        if station is None:
+            return None
+        # for station in self._stations:
+        # if station has more than one word, AND will be put between
+        # to search for multiple terms together.
+        url = self.e.get_search_url(
+            response="csv", items_per_page=5, search_for=station
+        )
+
+        try:
+            df = pd.read_csv(url)
+        except Exception as e:
+            logger.exception(e)
+            logger.warning(
+                f"search url {url} did not work for station {station}."
+            )
+            return
+
+        # first try for exact station match
+        try:
+            # Special case for TABS when don't split the id name
+            if 'tabs' in station:  # don't split
+                dataset_id = [dataset_id for dataset_id in df['Dataset ID'] if station.lower() == dataset_id.lower()][0]
+            else:
+                dataset_id = [dataset_id for dataset_id in df['Dataset ID'] if station.lower() in dataset_id.lower().split('_')][0]
+
+        except Exception as e:
+            logger.exception(e)
+            logger.warning(
+                "When searching for a dataset id to match station name %s, the first attempt to match the id did not work."
+                % (station)
+            )
+            # If that doesn't work, return None for dataset_id
+            dataset_id = None
+            # # if that doesn't work, trying for more general match and just take first returned option
+            # dataset_id = df.iloc[0]["Dataset ID"]
+
+
+        return dataset_id
+
     @property
     def dataset_ids(self):
         """Find dataset_ids for server.
@@ -181,51 +230,23 @@ class ErddapReader:
             elif self.approach == "stations":
 
                 # search by station name for each of stations
-                dataset_ids = []
-                for station in self._stations:
-                    # if station has more than one word, AND will be put between
-                    # to search for multiple terms together.
-                    url = self.e.get_search_url(
-                        response="csv", items_per_page=5, search_for=station
+                if self.parallel:
+                    # get metadata for datasets
+                    # run in parallel to save time
+                    num_cores = multiprocessing.cpu_count()
+                    dataset_ids = Parallel(n_jobs=num_cores)(
+                        delayed(self.find_dataset_id_from_station)(station)
+                        for station in self._stations
                     )
 
-                    try:
-                        df = pd.read_csv(url)
-                    except Exception as e:
-                        logger.exception(e)
-                        logger.warning(
-                            f"search url {url} did not work for station {station}."
-                        )
-                        continue
+                else:
+                    dataset_ids = []
+                    for station in self._stations:
+                        dataset_ids.append(self.find_dataset_id_from_station(station))
 
-                    # first try for exact station match
-                    try:
-                        dataset_id = [
-                            dataset_id
-                            for dataset_id in df["Dataset ID"]
-                            if station.lower() in dataset_id.lower().split("_")
-                        ][0]
-
-                    # if that doesn't work, trying for more general match and just take first returned option
-                    except Exception as e:
-                        logger.exception(e)
-                        logger.warning(
-                            "When searching for a dataset id to match station name %s, the first attempt to match the id did not work."
-                            % (station)
-                        )
-                        dataset_id = df.iloc[0]["Dataset ID"]
-
-                    #                         if 'tabs' in org_id:  # don't split
-                    #                             axiom_id = [axiom_id for axiom_id in df['Dataset ID'] if org_id.lower() == axiom_id.lower()]
-                    #                         else:
-                    #                             axiom_id = [axiom_id for axiom_id in df['Dataset ID'] if org_id.lower() in axiom_id.lower().split('_')][0]
-
-                    #                     except:
-                    #                         dataset_id = None
-
-                    dataset_ids.append(dataset_id)
-
-                self._dataset_ids = list(set(dataset_ids))
+                # In this case return all dataset_ids so they match 1-1 with
+                # the input station list.
+                self._dataset_ids = dataset_ids
 
             else:
                 logger.warning(
@@ -765,9 +786,8 @@ class stations(ErddapReader):
 
     Attributes
     ----------
-    kw: dict
-      Contains space and time search constraints: `min_lon`, `max_lon`,
-      `min_lat`, `max_lat`, `min_time`, `max_time`.
+    kw: dict, optional
+      Contains space and time search constraints: `min_time`, `max_time`.
     variables: None
         variables is None for this class since we read search by dataset_id or
         station name.
