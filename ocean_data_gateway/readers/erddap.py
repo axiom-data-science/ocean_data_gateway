@@ -142,18 +142,24 @@ class ErddapReader:
             df = pd.read_csv(url)
         except Exception as e:
             logger.exception(e)
-            logger.warning(
-                f"search url {url} did not work for station {station}."
-            )
+            logger.warning(f"search url {url} did not work for station {station}.")
             return
 
         # first try for exact station match
         try:
             # Special case for TABS when don't split the id name
-            if 'tabs' in station:  # don't split
-                dataset_id = [dataset_id for dataset_id in df['Dataset ID'] if station.lower() == dataset_id.lower()][0]
+            if "tabs" in station:  # don't split
+                dataset_id = [
+                    dataset_id
+                    for dataset_id in df["Dataset ID"]
+                    if station.lower() == dataset_id.lower()
+                ][0]
             else:
-                dataset_id = [dataset_id for dataset_id in df['Dataset ID'] if station.lower() in dataset_id.lower().split('_')][0]
+                dataset_id = [
+                    dataset_id
+                    for dataset_id in df["Dataset ID"]
+                    if station.lower() in dataset_id.lower().split("_")
+                ][0]
 
         except Exception as e:
             logger.exception(e)
@@ -165,7 +171,6 @@ class ErddapReader:
             dataset_id = None
             # # if that doesn't work, trying for more general match and just take first returned option
             # dataset_id = df.iloc[0]["Dataset ID"]
-
 
         return dataset_id
 
