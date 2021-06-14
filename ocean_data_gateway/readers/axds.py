@@ -456,8 +456,12 @@ class AxdsReader:
                 lines = "sources:\n"
                 for dataset_id, dataset in self.search_results.items():
                     label = dataset["label"].replace(":", "-")
+                    # csv version
                     urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
-                    metavars = dataset["source"]["meta"]["variables"]
+                    meta_url = dataset["source"]["files"]["meta.json"]["url"]
+                    # # netcdf version
+                    # urlpath = dataset["source"]["files"]["processed.nc"]["url"]
+                    # metavars = dataset["source"]["meta"]["variables"]
                     Vars, standard_names = zip(
                         *[
                             (key, metavars[key]["attributes"]["standard_name"])
@@ -466,6 +470,9 @@ class AxdsReader:
                             and ("standard_name" in metavars[key]["attributes"])
                         ]
                     )
+                    # metavars = '''-"temperature"
+                    #                 -"salinity"'''
+
                     P = shapely.wkt.loads(dataset["data"]["geospatial_bounds"])
                     (
                         geospatial_lon_min,
@@ -485,6 +492,7 @@ class AxdsReader:
     metadata:
       variables: {Vars}
       standard_names: {standard_names}
+      meta_url: {meta_url}
       platform_category: {dataset['data']['platform_category']}
       geospatial_lon_min: {geospatial_lon_min}
       geospatial_lat_min: {geospatial_lat_min}
@@ -652,6 +660,19 @@ sources:
             data = data.set_index("time")
             data = data[self.kw["min_time"] : self.kw["max_time"]]
 
+            # read units from metadata variable meta_url for columns
+            variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
+
+            units = []
+            for col in data.columns:
+                try:
+                    units.append(variables.loc[col]["attributes"]["units"])
+                except:
+                    units.append("")
+
+            # add units to 2nd header row
+            data.columns = pd.MultiIndex.from_tuples(zip(data.columns, units))
+
         elif self.axds_type == "layer_group":
 
             if self.catalog[dataset_id].urlpath is not None:
@@ -718,7 +739,7 @@ sources:
 
     #         return (dataset_id, self.catalog[dataset_id].read())
 
-    # @property
+    @property
     def data(self):
         """Read in data for all dataset_ids.
 
