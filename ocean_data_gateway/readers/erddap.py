@@ -309,7 +309,7 @@ class ErddapReader:
                 "time<=": self.kw["max_time"],
                 "time>=": self.kw["min_time"],
             }
-            download_url = self.e.get_download_url(response="csvp")
+            download_url = self.e.get_download_url(response="csv")
 
         elif self.e.protocol == "griddap":
             # the search terms that can be input for tabledap do not work for griddap
@@ -318,8 +318,18 @@ class ErddapReader:
             # get opendap link
             download_url = self.e.get_download_url(response="opendap")
 
+        # check if "prediction" is present in metadata, esp in case of NOAA
+        # model predictions
+        is_prediction = "Prediction" in " ".join(
+            list(info["Value"].replace(np.nan, None).values)
+        )
+
         # add erddap server name
-        return {dataset_id: [self.e.server, download_url] + items + [self.variables]}
+        return {
+            dataset_id: [self.e.server, download_url, info_url, is_prediction]
+            + items
+            + [self.variables]
+        }
 
     @property
     def meta(self):
@@ -358,7 +368,7 @@ class ErddapReader:
             self._meta = pd.DataFrame.from_dict(
                 meta,
                 orient="index",
-                columns=["database", "download_url"]
+                columns=["database", "download_url", "info_url", "is_prediction"]
                 + self.columns
                 + ["variable names"],
             )
@@ -387,7 +397,9 @@ class ErddapReader:
 
                 # fetch metadata if not already present
                 # found download_url from metadata and use
-                dd = pd.read_csv(download_url, index_col=0, parse_dates=True)
+                dd = pd.read_csv(
+                    download_url, header=[0, 1], index_col=0, parse_dates=True
+                )
 
                 # Drop cols and rows that are only NaNs.
                 dd = dd.dropna(axis="index", how="all").dropna(
@@ -439,7 +451,7 @@ class ErddapReader:
 
         return (dataset_id, dd)
 
-    # @property
+    @property
     def data(self):
         """Read in data for all dataset_ids.
 
@@ -453,23 +465,23 @@ class ErddapReader:
         in serial.
         """
 
-        # if not hasattr(self, '_data'):
+        if not hasattr(self, "_data"):
 
-        if self.parallel:
-            num_cores = multiprocessing.cpu_count()
-            downloads = Parallel(n_jobs=num_cores)(
-                delayed(self.data_by_dataset)(dataset_id)
-                for dataset_id in self.dataset_ids
-            )
-        else:
-            downloads = []
-            for dataset_id in self.dataset_ids:
-                downloads.append(self.data_by_dataset(dataset_id))
+            if self.parallel:
+                num_cores = multiprocessing.cpu_count()
+                downloads = Parallel(n_jobs=num_cores)(
+                    delayed(self.data_by_dataset)(dataset_id)
+                    for dataset_id in self.dataset_ids
+                )
+            else:
+                downloads = []
+                for dataset_id in self.dataset_ids:
+                    downloads.append(self.data_by_dataset(dataset_id))
 
-        #             if downloads is not None:
-        dds = {dataset_id: dd for (dataset_id, dd) in downloads}
-        #             else:
-        #                 dds = None
+            #             if downloads is not None:
+            dds = {dataset_id: dd for (dataset_id, dd) in downloads}
+            #             else:
+            #                 dds = None
 
         return dds
         # self._data = dds
