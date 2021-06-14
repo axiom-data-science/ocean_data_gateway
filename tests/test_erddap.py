@@ -15,7 +15,7 @@ def test_station_ioos_1dataset_id():
     station = odg.erddap.stations({"dataset_ids": "noaa_nos_co_ops_8771013", "kw": kw})
     assert station.kw == {"min_time": "2019-1-1", "max_time": "2019-1-2"}
     assert isinstance(station.meta, pd.DataFrame)
-    data = station.data()
+    data = station.data
     assert isinstance(data["noaa_nos_co_ops_8771013"], pd.DataFrame)
     assert list(
         data["noaa_nos_co_ops_8771013"].index[[0, -1]].sort_values().values

@@ -33,7 +33,7 @@ def test_station_platforms_1dataset_id():
     assert station.dataset_ids == [dataset_ids]
     assert not station.meta.empty
     assert isinstance(station.meta, pd.DataFrame)
-    data = station.data()
+    data = station.data
     assert isinstance(data[dataset_ids], pd.DataFrame)
     assert list(data[dataset_ids].index[[0, -1]].sort_values().values) == [
         np.datetime64("2020-08-01T00:00:00.000000000"),
