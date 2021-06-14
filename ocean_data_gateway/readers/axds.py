@@ -12,7 +12,6 @@ import intake
 import numpy as np
 import pandas as pd
 import requests
-import shapely.wkt
 
 from joblib import Parallel, delayed
 
@@ -454,55 +453,29 @@ class AxdsReader:
 
             if self.axds_type == "platform2":
                 lines = "sources:\n"
+
                 for dataset_id, dataset in self.search_results.items():
-                    label = dataset["label"].replace(":", "-")
-                    # csv version
                     urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
+                    file_intake = intake.open_csv(urlpath, csv_kwargs=dict(parse_dates=['time']))
                     meta_url = dataset["source"]["files"]["meta.json"]["url"]
-                    # # netcdf version
-                    # urlpath = dataset["source"]["files"]["processed.nc"]["url"]
-                    metavars = dataset["source"]["meta"]["variables"]
-                    Vars, standard_names = zip(
-                        *[
-                            (key, metavars[key]["attributes"]["standard_name"])
-                            for key in metavars.keys()
-                            if ("attributes" in metavars[key].keys())
-                            and ("standard_name" in metavars[key]["attributes"])
-                        ]
-                    )
-                    # metavars = '''-"temperature"
-                    #                 -"salinity"'''
-
-                    P = shapely.wkt.loads(dataset["data"]["geospatial_bounds"])
-                    (
-                        geospatial_lon_min,
-                        geospatial_lat_min,
-                        geospatial_lon_max,
-                        geospatial_lat_max,
-                    ) = P.bounds
-
-                    lines += f"""
-  {dataset["uuid"]}:
-    description: {label}
-    driver: csv
-    args:
-      urlpath: {urlpath}
-      csv_kwargs:
-        parse_dates: ['time']
-    metadata:
-      variables: {Vars}
-      standard_names: {standard_names}
-      meta_url: {meta_url}
-      platform_category: {dataset['data']['platform_category']}
-      geospatial_lon_min: {geospatial_lon_min}
-      geospatial_lat_min: {geospatial_lat_min}
-      geospatial_lon_max: {geospatial_lon_max}
-      geospatial_lat_max: {geospatial_lat_max}
-      id: {dataset["data"]["packrat_source_id"]}
-      time_coverage_start: {dataset['start_date_time']}
-      time_coverage_end: {dataset['end_date_time']}
-
-"""
+                    attributes = pd.read_json(meta_url)['attributes']
+                    file_intake.description = attributes['summary']
+                    metadata = {
+                        "urlpath": urlpath,
+                        "meta_url": meta_url,
+                        "platform_category": attributes["platform_category"],
+                        "geospatial_lon_min": attributes["geospatial_lon_min"],
+                        "geospatial_lat_min": attributes["geospatial_lat_min"],
+                        "geospatial_lon_max": attributes["geospatial_lon_max"],
+                        "geospatial_lat_max": attributes["geospatial_lat_max"],
+                        "source_id": attributes["packrat_source_id"],
+                        "packrat_uuid": attributes["packrat_uuid"],
+                        "time_coverage_start": attributes["time_coverage_start"],
+                        "time_coverage_end": attributes["time_coverage_end"],
+                    }
+                    file_intake.metadata = metadata
+                    file_intake.name = attributes["packrat_uuid"]
+                    lines += file_intake.yaml().strip("sources:")
 
             elif self.axds_type == "layer_group":
                 lines = """

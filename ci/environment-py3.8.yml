@@ -4,26 +4,26 @@ channels:
 dependencies:
   - python=3.8
   ############## These will have to be adjusted to your specific project
+  - aiohttp
+  - dask
+  - erddapy
+  - flake8
+  - intake
+  - intake-xarray
+  - ioos_qc
+  - ipython
+  - isort
+  - joblib
   - jupyter
   - jupyterlab
-  - numpy
-  - scipy
-  - dask
-  - netcdf4
   - matplotlib
-  - joblib
-  - shapely
-  - intake
+  - netcdf4
+  - numpy
   - pandas
-  - xarray
-  - requests
-  - flake8
-  - isort
-  - erddapy
   - pytest
-  - ipython
-  - aiohttp
-  - intake-xarray
+  - requests
+  - scipy
+  - xarray
   ##############
   - pytest
   - pip:
