@@ -461,7 +461,7 @@ class AxdsReader:
                     meta_url = dataset["source"]["files"]["meta.json"]["url"]
                     # # netcdf version
                     # urlpath = dataset["source"]["files"]["processed.nc"]["url"]
-                    # metavars = dataset["source"]["meta"]["variables"]
+                    metavars = dataset["source"]["meta"]["variables"]
                     Vars, standard_names = zip(
                         *[
                             (key, metavars[key]["attributes"]["standard_name"])
