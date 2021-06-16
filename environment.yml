@@ -15,6 +15,7 @@ dependencies:
   - joblib
   - shapely
   - intake
+  - ocean_data_gateway
   - pandas
   - xarray
   - requests
