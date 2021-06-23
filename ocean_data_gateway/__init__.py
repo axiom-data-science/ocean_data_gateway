@@ -3,11 +3,15 @@ Search through multiple ERDDAP and Axiom databases for datasets.
 """
 
 import logging
+import requests
+import ast
+import cf_xarray as cfxr
 
 from pathlib import Path
 
 from .gateway import Gateway
 from .readers import axds, erddap, local
+# from .utils import match_var
 
 
 try:
@@ -70,3 +74,38 @@ keys_kwargs = [
     "dataset_ids",
     "variables",
 ]
+
+
+# For variable identification with cf-xarray
+# custom_criteria to identify variables is saved here
+# https://gist.github.com/kthyng/c3cc27de6b4449e1776ce79215d5e732
+my_custom_criteria_gist = 'https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/7a5b0b657affa6e1746ee4b00662de828f3a58bd/my_custom_criteria.py'
+response = requests.get(my_custom_criteria_gist)
+my_custom_criteria = ast.literal_eval(response.text)
+cfxr.accessor.set_options(my_custom_criteria)
+
+# Principle variable list. These variable names need to match those in the gist.
+# units
+# QARTOD numbers for variables
+var_def = {
+    "temp": {
+        "units": "degree_Celsius",
+        "fail_span": [-100, 100],
+        "suspect_span": [-10, 40],
+    },
+    "salt": {"units": "psu", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
+    "u": {"units": "m/s", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
+    "v": {"units": "m/s", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
+    "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-2, 3]},
+}
+
+# REGEX = {
+#     "temp": "temp|Celsius",
+#     "salt": "salt|salinity|psu",
+#     "vel": "u-momentum|u-velocity|v-momentum|v-velocity|velocity|u velocity|v velocity|m/s|meter second-1",
+#     "ssh": "zeta|ssh|mld|elevation|sea_surface|sea surface",
+#     "rho": "dense|density|kg/m^3",
+#     "depths": "bathy|depths|bathymetry",
+# }
+#
+# MED = {"air": "air|wind", "water": "water|sea"}

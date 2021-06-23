@@ -19,7 +19,7 @@ quiet = false
 color = true
 
 [tool.isort]
-known_third_party = ["erddapy", "intake", "joblib", "numpy", "pandas", "pkg_resources", "requests", "setuptools", "shapely", "xarray"]
+known_third_party = ["cf_xarray", "erddapy", "intake", "ioos_qc", "joblib", "numpy", "pandas", "pint", "pint_pandas", "pint_xarray", "pkg_resources", "requests", "setuptools", "shapely", "xarray"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
