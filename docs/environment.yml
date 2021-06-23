@@ -36,7 +36,6 @@ dependencies:
    - recommonmark
    - pip
    - pip:
-     - git+https://github.com/axiom-data-science/ocean_data_gateway.git#egg=ocean_data_gateway
      - docrep<=0.2.7
      - nbsphinx
      - jupyter_client

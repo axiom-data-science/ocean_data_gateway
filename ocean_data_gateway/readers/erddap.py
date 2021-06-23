@@ -9,6 +9,7 @@ import re
 import numpy as np
 import pandas as pd
 import xarray as xr
+import cf_xarray
 
 from erddapy import ERDDAP
 from joblib import Parallel, delayed
@@ -76,9 +77,11 @@ class ErddapReader:
         if known_server == "ioos":
             protocol = "tabledap"
             server = "http://erddap.sensors.ioos.us/erddap"
+            filetype = "netcdf"  # other option: "csv"
         elif known_server == "coastwatch":
             protocol = "griddap"
             server = "http://coastwatch.pfeg.noaa.gov/erddap"
+            filetype = "netcdf"  # other option: "csv"
         elif known_server is not None:
             statement = (
                 "either select a known server or input protocol and server string"
@@ -95,6 +98,7 @@ class ErddapReader:
         self.e = ERDDAP(server=server)
         self.e.protocol = protocol
         self.e.server = server
+        self.filetype = filetype
 
         # columns for metadata
         self.columns = [
@@ -309,7 +313,10 @@ class ErddapReader:
                 "time<=": self.kw["max_time"],
                 "time>=": self.kw["min_time"],
             }
-            download_url = self.e.get_download_url(response="csv")
+            if self.filetype == 'csv':
+                download_url = self.e.get_download_url(response="csvp")
+            elif self.filetype == 'netcdf':
+                download_url = self.e.get_download_url(response="opendap")
 
         elif self.e.protocol == "griddap":
             # the search terms that can be input for tabledap do not work for griddap
@@ -391,7 +398,8 @@ class ErddapReader:
         # data variables in ds that are not the variables we searched for
         #         varnames = self.meta.loc[dataset_id, 'variable names']
 
-        if self.e.protocol == "tabledap":
+        if self.filetype == 'csv':
+        # if self.e.protocol == "tabledap":
 
             try:
 
@@ -426,28 +434,51 @@ class ErddapReader:
                 logger.warning("no data to be read in for %s" % dataset_id)
                 dd = None
 
-        elif self.e.protocol == "griddap":
+        elif self.filetype == 'netcdf':
+        # elif self.e.protocol == "griddap":
 
-            try:
-                dd = xr.open_dataset(download_url, chunks="auto").sel(
-                    time=slice(self.kw["min_time"], self.kw["max_time"])
-                )
+            if self.e.protocol == "tabledap":
 
-                if ("min_lat" in self.kw) and ("max_lat" in self.kw):
-                    dd = dd.sel(latitude=slice(self.kw["min_lat"], self.kw["max_lat"]))
+                try:
+                    # assume I don't need to narrow in space since time series (tabledap)
+                    dd = xr.open_dataset(download_url, chunks="auto")\
+                            .swap_dims({'s': 's.time'})\
+                            .sortby('s.time', ascending=True)\
+                            .cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
 
-                if ("min_lon" in self.kw) and ("max_lon" in self.kw):
-                    dd = dd.sel(longitude=slice(self.kw["min_lon"], self.kw["max_lon"]))
+                    # use variable names to drop other variables (should. Ido this?)
+                    if self.variables is not None:
+                        l = set(dd.data_vars) - set(self.variables)
+                        dd = dd.drop_vars(l)
 
-                # use variable names to drop other variables (should. Ido this?)
-                if self.variables is not None:
-                    l = set(dd.data_vars) - set(self.variables)
-                    dd = dd.drop_vars(l)
+                except Exception as e:
+                    logger.exception(e)
+                    logger.warning("no data to be read in for %s" % dataset_id)
+                    dd = None
 
-            except Exception as e:
-                logger.exception(e)
-                logger.warning("no data to be read in for %s" % dataset_id)
-                dd = None
+
+            elif self.e.protocol == "griddap":
+
+                try:
+                    dd = xr.open_dataset(download_url, chunks="auto").sel(
+                        time=slice(self.kw["min_time"], self.kw["max_time"])
+                    )
+
+                    if ("min_lat" in self.kw) and ("max_lat" in self.kw):
+                        dd = dd.sel(latitude=slice(self.kw["min_lat"], self.kw["max_lat"]))
+
+                    if ("min_lon" in self.kw) and ("max_lon" in self.kw):
+                        dd = dd.sel(longitude=slice(self.kw["min_lon"], self.kw["max_lon"]))
+
+                    # use variable names to drop other variables (should. Ido this?)
+                    if self.variables is not None:
+                        l = set(dd.data_vars) - set(self.variables)
+                        dd = dd.drop_vars(l)
+
+                except Exception as e:
+                    logger.exception(e)
+                    logger.warning("no data to be read in for %s" % dataset_id)
+                    dd = None
 
         return (dataset_id, dd)
 
