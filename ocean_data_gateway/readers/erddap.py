@@ -514,10 +514,10 @@ class ErddapReader:
             #             else:
             #                 dds = None
 
-        return dds
-        # self._data = dds
+        # return dds
+            self._data = dds
 
-        # return self._data
+        return self._data
 
     def count(self, url):
         """Small helper function to count len(results) at url."""

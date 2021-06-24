@@ -60,7 +60,7 @@ def test_station_platforms_1station():
     stations = odg.axds.stations(
         {"axds_type": "platform2", "stations": stationname, "kw": kw}
     )
-    assert stations.dataset_ids == [dataset_id]
+    assert dataset_id in stations.dataset_ids
 
 
 # Test layer_groups, stations
