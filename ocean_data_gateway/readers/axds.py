@@ -12,6 +12,8 @@ import intake
 import numpy as np
 import pandas as pd
 import requests
+import fsspec
+import xarray as xr
 
 from joblib import Parallel, delayed
 
@@ -55,7 +57,7 @@ class AxdsReader:
         Reader name: AxdsReader
     """
 
-    def __init__(self, parallel=True, catalog_name=None, axds_type="platform2"):
+    def __init__(self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"):
         """
         Parameters
         ----------
@@ -110,6 +112,8 @@ class AxdsReader:
         self.name = f"axds_{axds_type}"
 
         self.reader = "AxdsReader"
+
+        self.filetype = filetype
 
     def url_query(self, query):
         """url modification to add query field.
@@ -455,8 +459,12 @@ class AxdsReader:
                 lines = "sources:\n"
 
                 for dataset_id, dataset in self.search_results.items():
-                    urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
-                    file_intake = intake.open_csv(urlpath, csv_kwargs=dict(parse_dates=['time']))
+                    if self.filetype == 'csv':
+                        urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
+                        file_intake = intake.open_csv(urlpath, csv_kwargs=dict(parse_dates=['time']))
+                    elif self.filetype == 'netcdf':
+                        urlpath = dataset["source"]["files"]["processed.nc"]["url"]
+                        file_intake = intake.open_netcdf(urlpath)#, xarray_kwargs=dict(parse_dates=['time']))
                     meta_url = dataset["source"]["files"]["meta.json"]["url"]
                     attributes = pd.read_json(meta_url)['attributes']
                     file_intake.description = attributes['summary']
@@ -627,11 +635,19 @@ sources:
 
         if self.axds_type == "platform2":
 
-            # .to_dask().compute() seems faster than read but
-            # should do more comparisons
-            data = self.catalog[dataset_id].to_dask().compute()
-            data = data.set_index("time")
-            data = data[self.kw["min_time"] : self.kw["max_time"]]
+            if self.filetype == 'csv':
+                # .to_dask().compute() seems faster than read but
+                # should do more comparisons
+                data = self.catalog[dataset_id].to_dask().compute()
+                data = data.set_index("time")
+                data = data[self.kw["min_time"] : self.kw["max_time"]]
+            elif self.filetype == 'netcdf':
+                # this downloads the http-served file to cache I think
+                download_url = self.catalog[dataset_id].urlpath
+                infile = fsspec.open(f'simplecache::{download_url}')
+                data = xr.open_dataset(infile.open()).swap_dims({'profile':'time'})
+                # filter by time
+                data = data.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
 
             # read units from metadata variable meta_url for columns
             variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
