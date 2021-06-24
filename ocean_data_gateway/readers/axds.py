@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import requests
 import shapely.wkt
+import fsspec
+import xarray as xr
 
 from joblib import Parallel, delayed
 
@@ -56,7 +58,7 @@ class AxdsReader:
         Reader name: AxdsReader
     """
 
-    def __init__(self, parallel=True, catalog_name=None, axds_type="platform2"):
+    def __init__(self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"):
         """
         Parameters
         ----------
@@ -111,6 +113,8 @@ class AxdsReader:
         self.name = f"axds_{axds_type}"
 
         self.reader = "AxdsReader"
+
+        self.filetype = filetype
 
     def url_query(self, query):
         """url modification to add query field.
@@ -456,7 +460,10 @@ class AxdsReader:
                 lines = "sources:\n"
                 for dataset_id, dataset in self.search_results.items():
                     label = dataset["label"].replace(":", "-")
-                    urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
+                    if self.filetype == 'csv':
+                        urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
+                    elif self.filetype == 'netcdf':
+                        urlpath = dataset["source"]["files"]["processed.nc"]["url"]
                     metavars = dataset["source"]["meta"]["variables"]
                     Vars, standard_names = zip(
                         *[
@@ -474,14 +481,21 @@ class AxdsReader:
                         geospatial_lat_max,
                     ) = P.bounds
 
+                    if self.filetype == 'csv':
+                        driver = 'csv'
+                        extra_lines = """      csv_kwargs:
+                                parse_dates: ['time']"""
+                    elif self.filetype == 'netcdf':
+                        driver = 'netcdf'
+                        extra_lines = """
+      xarray_kwargs:"""
                     lines += f"""
   {dataset["uuid"]}:
     description: {label}
-    driver: csv
+    driver: {driver}
     args:
       urlpath: {urlpath}
-      csv_kwargs:
-        parse_dates: ['time']
+      {extra_lines}
     metadata:
       variables: {Vars}
       standard_names: {standard_names}
@@ -646,11 +660,19 @@ sources:
 
         if self.axds_type == "platform2":
 
-            # .to_dask().compute() seems faster than read but
-            # should do more comparisons
-            data = self.catalog[dataset_id].to_dask().compute()
-            data = data.set_index("time")
-            data = data[self.kw["min_time"] : self.kw["max_time"]]
+            if self.filetype == 'csv':
+                # .to_dask().compute() seems faster than read but
+                # should do more comparisons
+                data = self.catalog[dataset_id].to_dask().compute()
+                data = data.set_index("time")
+                data = data[self.kw["min_time"] : self.kw["max_time"]]
+            elif self.filetype == 'netcdf':
+                # this downloads the http-served file to cache I think
+                download_url = self.catalog[dataset_id].urlpath
+                infile = fsspec.open(f'simplecache::{download_url}')
+                data = xr.open_dataset(infile.open()).swap_dims({'profile':'time'})
+                # filter by time
+                data = data.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
 
         elif self.axds_type == "layer_group":
 
