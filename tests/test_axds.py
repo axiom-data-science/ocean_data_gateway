@@ -27,8 +27,12 @@ def test_station_platforms_1dataset_id():
     kw = {"min_time": "2020-8-1", "max_time": "2020-8-2"}
     dataset_ids = "c61eecf1-1c0e-5287-b6fb-a92b51b14d54"
     station = odg.axds.stations(
-        {"axds_type": "platform2", "dataset_ids": dataset_ids, "kw": kw,
-         "parallel": False}
+        {
+            "axds_type": "platform2",
+            "dataset_ids": dataset_ids,
+            "kw": kw,
+            "parallel": False,
+        }
     )
     assert station.kw == {"min_time": "2020-8-1", "max_time": "2020-8-2"}
     assert station.dataset_ids == [dataset_ids]
@@ -36,9 +40,7 @@ def test_station_platforms_1dataset_id():
     assert isinstance(station.meta, pd.DataFrame)
     data = station.data
     assert isinstance(data[dataset_ids], xr.Dataset)
-    assert list(
-        data[dataset_ids].isel({'time': [0,-1]})['time'].values
-    ) == [
+    assert list(data[dataset_ids].isel({"time": [0, -1]})["time"].values) == [
         np.datetime64("2020-08-01T00:14:15.440860160"),
         np.datetime64("2020-08-02T23:30:44.189208832"),
     ]

@@ -6,10 +6,10 @@ import logging
 import multiprocessing
 import re
 
+import cf_xarray
 import numpy as np
 import pandas as pd
 import xarray as xr
-import cf_xarray
 
 from erddapy import ERDDAP
 from joblib import Parallel, delayed
@@ -313,9 +313,9 @@ class ErddapReader:
                 "time<=": self.kw["max_time"],
                 "time>=": self.kw["min_time"],
             }
-            if self.filetype == 'csv':
+            if self.filetype == "csv":
                 download_url = self.e.get_download_url(response="csvp")
-            elif self.filetype == 'netcdf':
+            elif self.filetype == "netcdf":
                 download_url = self.e.get_download_url(response="opendap")
 
         elif self.e.protocol == "griddap":
@@ -398,8 +398,8 @@ class ErddapReader:
         # data variables in ds that are not the variables we searched for
         #         varnames = self.meta.loc[dataset_id, 'variable names']
 
-        if self.filetype == 'csv':
-        # if self.e.protocol == "tabledap":
+        if self.filetype == "csv":
+            # if self.e.protocol == "tabledap":
 
             try:
 
@@ -434,17 +434,19 @@ class ErddapReader:
                 logger.warning("no data to be read in for %s" % dataset_id)
                 dd = None
 
-        elif self.filetype == 'netcdf':
-        # elif self.e.protocol == "griddap":
+        elif self.filetype == "netcdf":
+            # elif self.e.protocol == "griddap":
 
             if self.e.protocol == "tabledap":
 
                 try:
                     # assume I don't need to narrow in space since time series (tabledap)
-                    dd = xr.open_dataset(download_url, chunks="auto")\
-                            .swap_dims({'s': 's.time'})\
-                            .sortby('s.time', ascending=True)\
-                            .cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
+                    dd = (
+                        xr.open_dataset(download_url, chunks="auto")
+                        .swap_dims({"s": "s.time"})
+                        .sortby("s.time", ascending=True)
+                        .cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
+                    )
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:
@@ -456,7 +458,6 @@ class ErddapReader:
                     logger.warning("no data to be read in for %s" % dataset_id)
                     dd = None
 
-
             elif self.e.protocol == "griddap":
 
                 try:
@@ -465,10 +466,14 @@ class ErddapReader:
                     )
 
                     if ("min_lat" in self.kw) and ("max_lat" in self.kw):
-                        dd = dd.sel(latitude=slice(self.kw["min_lat"], self.kw["max_lat"]))
+                        dd = dd.sel(
+                            latitude=slice(self.kw["min_lat"], self.kw["max_lat"])
+                        )
 
                     if ("min_lon" in self.kw) and ("max_lon" in self.kw):
-                        dd = dd.sel(longitude=slice(self.kw["min_lon"], self.kw["max_lon"]))
+                        dd = dd.sel(
+                            longitude=slice(self.kw["min_lon"], self.kw["max_lon"])
+                        )
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:
@@ -514,7 +519,7 @@ class ErddapReader:
             #             else:
             #                 dds = None
 
-        # return dds
+            # return dds
             self._data = dds
 
         return self._data

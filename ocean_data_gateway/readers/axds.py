@@ -8,11 +8,11 @@ import multiprocessing
 import os
 import re
 
+import fsspec
 import intake
 import numpy as np
 import pandas as pd
 import requests
-import fsspec
 import xarray as xr
 
 from joblib import Parallel, delayed
@@ -57,7 +57,9 @@ class AxdsReader:
         Reader name: AxdsReader
     """
 
-    def __init__(self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"):
+    def __init__(
+        self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"
+    ):
         """
         Parameters
         ----------
@@ -459,15 +461,19 @@ class AxdsReader:
                 lines = "sources:\n"
 
                 for dataset_id, dataset in self.search_results.items():
-                    if self.filetype == 'csv':
+                    if self.filetype == "csv":
                         urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
-                        file_intake = intake.open_csv(urlpath, csv_kwargs=dict(parse_dates=['time']))
-                    elif self.filetype == 'netcdf':
+                        file_intake = intake.open_csv(
+                            urlpath, csv_kwargs=dict(parse_dates=["time"])
+                        )
+                    elif self.filetype == "netcdf":
                         urlpath = dataset["source"]["files"]["processed.nc"]["url"]
-                        file_intake = intake.open_netcdf(urlpath)#, xarray_kwargs=dict(parse_dates=['time']))
+                        file_intake = intake.open_netcdf(
+                            urlpath
+                        )  # , xarray_kwargs=dict(parse_dates=['time']))
                     meta_url = dataset["source"]["files"]["meta.json"]["url"]
-                    attributes = pd.read_json(meta_url)['attributes']
-                    file_intake.description = attributes['summary']
+                    attributes = pd.read_json(meta_url)["attributes"]
+                    file_intake.description = attributes["summary"]
                     metadata = {
                         "urlpath": urlpath,
                         "meta_url": meta_url,
@@ -635,7 +641,7 @@ sources:
 
         if self.axds_type == "platform2":
 
-            if self.filetype == 'csv':
+            if self.filetype == "csv":
                 # .to_dask().compute() seems faster than read but
                 # should do more comparisons
                 data = self.catalog[dataset_id].to_dask().compute()
@@ -651,12 +657,12 @@ sources:
 
                 # add units to 2nd header row
                 data.columns = pd.MultiIndex.from_tuples(zip(data.columns, units))
-                
-            elif self.filetype == 'netcdf':
+
+            elif self.filetype == "netcdf":
                 # this downloads the http-served file to cache I think
                 download_url = self.catalog[dataset_id].urlpath
-                infile = fsspec.open(f'simplecache::{download_url}')
-                data = xr.open_dataset(infile.open()).swap_dims({'profile':'time'})
+                infile = fsspec.open(f"simplecache::{download_url}")
+                data = xr.open_dataset(infile.open()).swap_dims({"profile": "time"})
                 # filter by time
                 data = data.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
 
@@ -664,70 +670,29 @@ sources:
             variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
 
         elif self.axds_type == "layer_group":
-
             if self.catalog[dataset_id].urlpath is not None:
                 try:
                     data = self.catalog[dataset_id].to_dask()
-                    try:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("standard_name" in data[coord].attrs)
-                            and (data[coord].attrs["standard_name"] == "time")
-                        ]
-                        assert len(timekey) > 0
-                    except:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("time" in coord) or (coord == "t")
-                        ]
-                        assert len(timekey) > 0
-                    timekey = timekey[0]
-                    slicedict = {
-                        timekey: slice(self.kw["min_time"], self.kw["max_time"])
-                    }
-                    data = data.sel(slicedict)
-                except KeyError as e:
-                    #                     logger.exception(e)
-                    #                     logger.warning(f'data was not read in for dataset_id {dataset_id} with url path {self.catalog[dataset_id].urlpath} and description {self.catalog[dataset_id].description}.')
 
+                    # preprocess to avoid a sometimes-problem:
                     # try to fix key error assuming it is the following problem:
                     # KeyError: "cannot represent labeled-based slice indexer for dimension 'time' with a slice over integer positions; the index is unsorted or non-unique"
-                    try:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("standard_name" in data[coord].attrs)
-                            and (data[coord].attrs["standard_name"] == "time")
-                        ]
-                        assert len(timekey) > 0
-                    except:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("time" in coord) or (coord == "t")
-                        ]
-                        assert len(timekey) > 0
-                    timekey = timekey[0]
+                    _, index = np.unique(data.cf["T"], return_index=True)
+                    data = data.cf.isel(T=index)
 
-                    slicedict = {
-                        timekey: slice(self.kw["min_time"], self.kw["max_time"])
-                    }
-                    _, index = np.unique(data[timekey], return_index=True)
-                    data = data.isel({timekey: index}).sel(slicedict)
+                    # filter by time
+                    data = data.cf.sel(
+                        T=slice(self.kw["min_time"], self.kw["max_time"])
+                    )
+
                 except Exception as e:
                     logger.exception(e)
                     logger.warning(
                         f"data was not read in for dataset_id {dataset_id} with url path {self.catalog[dataset_id].urlpath} and description {self.catalog[dataset_id].description}."
                     )
                     data = None
-            else:
-                data = None
 
         return (dataset_id, data)
-
-    #         return (dataset_id, self.catalog[dataset_id].read())
 
     @property
     def data(self):

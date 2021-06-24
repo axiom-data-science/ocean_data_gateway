@@ -20,7 +20,9 @@ def test_station_ioos_1dataset_id():
     assert isinstance(data["noaa_nos_co_ops_8771013"], xr.Dataset)
     # assert isinstance(data["noaa_nos_co_ops_8771013"], pd.DataFrame)
     assert list(
-        station.data['noaa_nos_co_ops_8771013'].isel({'s.time': [0,-1]})['s.time'].values
+        station.data["noaa_nos_co_ops_8771013"]
+        .isel({"s.time": [0, -1]})["s.time"]
+        .values
     ) == [
         np.datetime64("2019-01-01T00:00:00.000000000"),
         np.datetime64("2019-01-02T23:54:00.000000000"),
