@@ -641,6 +641,17 @@ sources:
                 data = self.catalog[dataset_id].to_dask().compute()
                 data = data.set_index("time")
                 data = data[self.kw["min_time"] : self.kw["max_time"]]
+
+                units = []
+                for col in data.columns:
+                    try:
+                        units.append(variables.loc[col]["attributes"]["units"])
+                    except:
+                        units.append("")
+
+                # add units to 2nd header row
+                data.columns = pd.MultiIndex.from_tuples(zip(data.columns, units))
+                
             elif self.filetype == 'netcdf':
                 # this downloads the http-served file to cache I think
                 download_url = self.catalog[dataset_id].urlpath
@@ -651,16 +662,6 @@ sources:
 
             # read units from metadata variable meta_url for columns
             variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
-
-            units = []
-            for col in data.columns:
-                try:
-                    units.append(variables.loc[col]["attributes"]["units"])
-                except:
-                    units.append("")
-
-            # add units to 2nd header row
-            data.columns = pd.MultiIndex.from_tuples(zip(data.columns, units))
 
         elif self.axds_type == "layer_group":
 
