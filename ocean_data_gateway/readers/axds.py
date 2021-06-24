@@ -424,26 +424,28 @@ class AxdsReader:
             dataset["data"]["max_lng"],
         )
 
-        lines = f"""
-  {dataset_id}:
-    description: {label}
-    driver: opendap
-    args:
-      urlpath: {urlpath}
-      engine: 'netcdf4'
-      xarray_kwargs:
-    metadata:
-      variables: {list(layer_groups.values())}
-      layer_group_uuids: {list(layer_groups.keys())}
-      model_slug: {model_slug}
-      geospatial_lon_min: {geospatial_lon_min}
-      geospatial_lat_min: {geospatial_lat_min}
-      geospatial_lon_max: {geospatial_lon_max}
-      geospatial_lat_max: {geospatial_lat_max}
-      time_coverage_start: {dataset['start_date_time']}
-      time_coverage_end: {dataset['end_date_time']}
+        # set up lines
+        file_intake = intake.open_opendap(
+            urlpath, engine='netcdf4', xarray_kwargs=dict()
+        )
+        file_intake.description = label
+        file_intake.engine = 'netcdf4'
+        metadata = {
+            "urlpath": urlpath,
+            "variables": list(layer_groups.values()),
+            "layer_group_uuids": list(layer_groups.keys()),
+            "model_slug": model_slug,
+            "geospatial_lon_min": geospatial_lon_min,
+            "geospatial_lat_min": geospatial_lat_min,
+            "geospatial_lon_max": geospatial_lon_max,
+            "geospatial_lat_max": geospatial_lat_max,
+            "time_coverage_start": dataset['start_date_time'],
+            "time_coverage_end": dataset['end_date_time'],
+            }
+        file_intake.metadata = metadata
+        file_intake.name = dataset_id
+        lines = file_intake.yaml().strip("sources:")
 
-"""
         return lines
 
     def write_catalog(self):
@@ -471,7 +473,11 @@ class AxdsReader:
                         file_intake = intake.open_netcdf(
                             urlpath
                         )  # , xarray_kwargs=dict(parse_dates=['time']))
+                    # to get all metadata
+                    # source = intake.open_textfiles(meta_url, decoder=json.loads)
+                    # source.metadata = source.read()[0]
                     meta_url = dataset["source"]["files"]["meta.json"]["url"]
+                    meta_url = meta_url.replace(' ','%20')
                     attributes = pd.read_json(meta_url)["attributes"]
                     file_intake.description = attributes["summary"]
                     metadata = {
