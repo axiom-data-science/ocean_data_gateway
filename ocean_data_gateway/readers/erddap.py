@@ -445,7 +445,9 @@ class ErddapReader:
                     dd = dd.swap_dims({"s": dd.cf["time"].name})
                     dd = dd.sortby(dd.cf["time"], ascending=True)
                     dd = dd.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
-                    dd = dd.set_coords([dd.cf['longitude'].name, dd.cf['latitude'].name])
+                    dd = dd.set_coords(
+                        [dd.cf["longitude"].name, dd.cf["latitude"].name]
+                    )
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:

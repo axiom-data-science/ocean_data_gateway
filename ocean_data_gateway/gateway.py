@@ -2,17 +2,16 @@
 This controls and connects to the individual readers.
 """
 
-import pint
 import cf_xarray
-from cf_xarray.units import units
-import pint_xarray
+import pandas as pd
+import pint
 import pint_pandas
-pint_xarray.unit_registry = units
-
+import pint_xarray
 
 # from pint_xarray import unit_registry as ureg
 import xarray as xr
-import pandas as pd
+
+from cf_xarray.units import units
 
 # from cf_xarray.units import units
 from ioos_qc import qartod
@@ -21,6 +20,7 @@ from ioos_qc.config import QcConfig
 import ocean_data_gateway as odg
 
 
+pint_xarray.unit_registry = units
 
 
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
@@ -341,14 +341,20 @@ class Gateway(object):
                     cols = list(dd.cf.standard_names.keys())
 
                 # which custom variable names are in dataset
-                varnames = [(cf_xarray.accessor._get_custom_criteria(dd, var), var) for var in odg.var_def.keys() if len(cf_xarray.accessor._get_custom_criteria(dd, var))>0]
-                assert len(varnames) > 0, 'no custom names matched in Dataset.'
+                varnames = [
+                    (cf_xarray.accessor._get_custom_criteria(dd, var), var)
+                    for var in odg.var_def.keys()
+                    if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
+                ]
+                assert len(varnames) > 0, "no custom names matched in Dataset."
                 # dd_varnames are the variable names in the Dataset dd
                 # cf_varnames are the custom names we can use to refer to the
                 # variables through cf-xarray
                 dd_varnames, cf_varnames = zip(*varnames)
                 dd_varnames = sum(dd_varnames, [])
-                assert len(dd_varnames) == len(cf_varnames), 'looks like multiple variables might have been identified for a custom variable name'
+                assert len(dd_varnames) == len(
+                    cf_varnames
+                ), "looks like multiple variables might have been identified for a custom variable name"
 
                 # subset to just the boem or requested variables for each df or ds
                 if isinstance(dd, pd.DataFrame):
@@ -378,10 +384,13 @@ class Gateway(object):
                 # go through each variable by name to make sure in correct units
                 # have to do this in separate loop so that can dequantify afterward
                 if isinstance(dd, pd.DataFrame):
-                    print('NOT IMPLEMENTED FOR DATAFRAME YET')
+                    print("NOT IMPLEMENTED FOR DATAFRAME YET")
                 elif isinstance(dd, xr.Dataset):
                     # form of "temp": "degree_Celsius"
-                    units_dict = {dd_varname: odg.var_def[cf_varname]['units'] for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)}
+                    units_dict = {
+                        dd_varname: odg.var_def[cf_varname]["units"]
+                        for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
+                    }
                     # convert to conventional units
                     dd2 = dd2.pint.to(units_dict)
 
@@ -404,7 +413,9 @@ class Gateway(object):
 
                     # put flags into dataset
                     if isinstance(dd, pd.DataFrame):
-                        dd2[f"{dd_varname}_qc"] = qc_results["qartod"]["gross_range_test"]
+                        dd2[f"{dd_varname}_qc"] = qc_results["qartod"][
+                            "gross_range_test"
+                        ]
                     elif isinstance(dd, xr.Dataset):
                         new_data = qc_results["qartod"]["gross_range_test"]
                         dims = dd2[dd_varname].dims
