@@ -2,22 +2,25 @@
 This controls and connects to the individual readers.
 """
 
-import pandas as pd
 import pint
 import cf_xarray
 from cf_xarray.units import units
 import pint_xarray
 import pint_pandas
+pint_xarray.unit_registry = units
+
+
 # from pint_xarray import unit_registry as ureg
 import xarray as xr
-
-pint_xarray.unit_registry = units
+import pandas as pd
 
 # from cf_xarray.units import units
 from ioos_qc import qartod
 from ioos_qc.config import QcConfig
 
 import ocean_data_gateway as odg
+
+
 
 
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
@@ -330,86 +333,83 @@ class Gateway(object):
         for data in self.data:
             for dataset_id, dd in data.items():
 
-                # # This seems prohibitively slow for Datasets at least for now
-                # if isinstance(dd, xr.Dataset):
-                #     continue
-
+                # Not anticipating having DataFrames come through here anymore,
+                # but keeping code in case that changes.
                 if isinstance(dd, pd.DataFrame):
                     cols = list(list(zip(*dd.columns))[0])
                 elif isinstance(dd, xr.Dataset):
                     cols = list(dd.cf.standard_names.keys())
 
-                import pdb; pdb.set_trace()
-                varnames = odg.match_var(cols, list(odg.var_def.keys()))
-                # import pdb; pdb.set_trace()
-                # only proceed with var dict entries that have values, and just one entry
-                varnames = {k: v[0] for k, v in varnames.items() if v}
-
-                # for Datasets, replace varnames values (which are standard_names)
-                # with their variable names to be eaier to work with
-                if isinstance(dd, xr.Dataset):
-                    for gen_name, dd_name in varnames.items():
-                        dd_name_new = list(
-                            dd.filter_by_attrs(standard_name=dd_name).data_vars.keys()
-                        )[0]
-                        varnames[gen_name] = dd_name_new
+                # which custom variable names are in dataset
+                varnames = [(cf_xarray.accessor._get_custom_criteria(dd, var), var) for var in odg.var_def.keys() if len(cf_xarray.accessor._get_custom_criteria(dd, var))>0]
+                assert len(varnames) > 0, 'no custom names matched in Dataset.'
+                # dd_varnames are the variable names in the Dataset dd
+                # cf_varnames are the custom names we can use to refer to the
+                # variables through cf-xarray
+                dd_varnames, cf_varnames = zip(*varnames)
+                dd_varnames = sum(dd_varnames, [])
+                assert len(dd_varnames) == len(cf_varnames), 'looks like multiple variables might have been identified for a custom variable name'
 
                 # subset to just the boem or requested variables for each df or ds
-                # import pdb; pdb.set_trace()
-                # if isinstance(dd, pd.DataFrame):
-                    # dd2 = dd[list(varnames.values())]
-                # elif isinstance(dd, xr.Dataset):
-                dd2 = dd[list(varnames.values())]
+                if isinstance(dd, pd.DataFrame):
+                    dd2 = dd[list(varnames.values())]
+                elif isinstance(dd, xr.Dataset):
+                    dd2 = dd.cf[cf_varnames]
+                    # dd2 = dd[varnames]  # equivalent
 
                 # Preprocess to change salinity units away from 1e-3
                 if isinstance(dd, pd.DataFrame):
                     # this replaces units in the 2nd column level of 1e-3 with psu
-                    new_levs = ['psu' if col=='1e-3' else col for col in dd2.columns.levels[1]]
+                    new_levs = [
+                        "psu" if col == "1e-3" else col for col in dd2.columns.levels[1]
+                    ]
                     dd2.columns.set_levels(new_levs, level=1, inplace=True)
                 elif isinstance(dd, xr.Dataset):
                     for Var in dd2.data_vars:
-                        if 'units' in dd2[Var].attrs and dd2[Var].attrs['units']=='1e-3':
-                            dd2[Var].attrs['units'] = 'psu'
+                        if (
+                            "units" in dd2[Var].attrs
+                            and dd2[Var].attrs["units"] == "1e-3"
+                        ):
+                            dd2[Var].attrs["units"] = "psu"
                 # run pint quantify on each data structure
-                # import pdb; pdb.set_trace()
                 dd2 = dd2.pint.quantify()
                 # dd2 = dd2.pint.quantify(level=-1)
 
                 # go through each variable by name to make sure in correct units
                 # have to do this in separate loop so that can dequantify afterward
-                for gen_name, dd_name in varnames.items():
-
+                if isinstance(dd, pd.DataFrame):
+                    print('NOT IMPLEMENTED FOR DATAFRAME YET')
+                elif isinstance(dd, xr.Dataset):
+                    # form of "temp": "degree_Celsius"
+                    units_dict = {dd_varname: odg.var_def[cf_varname]['units'] for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)}
                     # convert to conventional units
-                    # only change units if they aren't already correct
-                    if dd2[dd_name].pint.units != odg.var_def[gen_name]["units"]:
-                        # this is super slow for Datasets since not local
-                        dd2[dd_name] = dd2[dd_name].pint.to(
-                            odg.var_def[gen_name]["units"]
-                        )
+                    dd2 = dd2.pint.to(units_dict)
 
                 dd2 = dd2.pint.dequantify()
 
                 # now loop for QARTOD on each variable
-                for gen_name, dd_name in varnames.items():
+                for dd_varname, cf_varname in zip(dd_varnames, cf_varnames):
                     # run QARTOD
                     qc_config = {
                         "qartod": {
                             "gross_range_test": {
-                                "fail_span": odg.var_def[gen_name]["fail_span"],
-                                "suspect_span": odg.var_def[gen_name]["suspect_span"],
+                                "fail_span": odg.var_def[cf_varname]["fail_span"],
+                                "suspect_span": odg.var_def[cf_varname]["suspect_span"],
                             },
                         }
                     }
                     qc = QcConfig(qc_config)
-                    qc_results = qc.run(inp=dd2[dd_name])
+                    qc_results = qc.run(inp=dd2[dd_varname])
+                    # qc_results = qc.run(inp=dd2.cf[cf_varname])  # this isn't working for some reason
 
                     # put flags into dataset
                     if isinstance(dd, pd.DataFrame):
-                        dd2[f"{dd_name}_qc"] = qc_results["qartod"]["gross_range_test"]
+                        dd2[f"{dd_varname}_qc"] = qc_results["qartod"]["gross_range_test"]
                     elif isinstance(dd, xr.Dataset):
                         new_data = qc_results["qartod"]["gross_range_test"]
-                        dims = dd2[dd_name].dims
-                        dd2[f"{dd_name}_qc"] = (dims, new_data)
+                        dims = dd2[dd_varname].dims
+                        dd2[f"{dd_varname}_qc"] = (dims, new_data)
+
                 data[dataset_id] = dd2
             data_out.append(data)
 

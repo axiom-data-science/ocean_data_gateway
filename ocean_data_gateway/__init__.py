@@ -2,15 +2,18 @@
 Search through multiple ERDDAP and Axiom databases for datasets.
 """
 
-import logging
-import requests
 import ast
-import cf_xarray as cfxr
+import logging
 
 from pathlib import Path
 
+import cf_xarray as cfxr
+import requests
+
 from .gateway import Gateway
 from .readers import axds, erddap, local
+
+
 # from .utils import match_var
 
 
@@ -79,7 +82,7 @@ keys_kwargs = [
 # For variable identification with cf-xarray
 # custom_criteria to identify variables is saved here
 # https://gist.github.com/kthyng/c3cc27de6b4449e1776ce79215d5e732
-my_custom_criteria_gist = 'https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/7a5b0b657affa6e1746ee4b00662de828f3a58bd/my_custom_criteria.py'
+my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/1eeda7fe43976126235b710f4f733384fff2a788/my_custom_criteria.py"
 response = requests.get(my_custom_criteria_gist)
 my_custom_criteria = ast.literal_eval(response.text)
 cfxr.accessor.set_options(my_custom_criteria)

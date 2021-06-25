@@ -441,12 +441,11 @@ class ErddapReader:
 
                 try:
                     # assume I don't need to narrow in space since time series (tabledap)
-                    dd = (
-                        xr.open_dataset(download_url, chunks="auto")
-                        .swap_dims({"s": "s.time"})
-                        .sortby("s.time", ascending=True)
-                        .cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
-                    )
+                    dd = xr.open_dataset(download_url, chunks="auto")
+                    dd = dd.swap_dims({"s": dd.cf["time"].name})
+                    dd = dd.sortby(dd.cf["time"], ascending=True)
+                    dd = dd.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
+                    dd = dd.set_coords([dd.cf['longitude'].name, dd.cf['latitude'].name])
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:
