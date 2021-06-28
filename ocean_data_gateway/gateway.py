@@ -3,17 +3,18 @@ This controls and connects to the individual readers.
 """
 
 import cf_xarray
-from cf_xarray.units import units
-import pint_xarray
-pint_xarray.unit_registry = units
-
 import pandas as pd
+import pint_xarray
 import xarray as xr
 
+from cf_xarray.units import units
 from ioos_qc import qartod
 from ioos_qc.config import QcConfig
 
 import ocean_data_gateway as odg
+
+
+pint_xarray.unit_registry = units
 
 
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
@@ -319,21 +320,21 @@ class Gateway(object):
 
         This is slow if your data is both chunks of time and space, so this
         should first narrow by both as much as possible.
-        
+
         Parameters
         ----------
         verbose: boolean, optional
             If True, report summary statistics on QC flag distribution in datasets.
-        
+
         Returns
         -------
         Dataset with added variables for each variable in dataset that was checked, with name of [variable]+'_qc'.
-        
+
         Notes
         -----
-        Code has been saved for data in DataFrames, but is changing so 
-        that data will be in Datasets. This way, can use cf-xarray 
-        functionality for custom variable names and easier to have 
+        Code has been saved for data in DataFrames, but is changing so
+        that data will be in Datasets. This way, can use cf-xarray
+        functionality for custom variable names and easier to have
         recognizable units for variables with netcdf than csv.
         """
 
@@ -423,9 +424,7 @@ class Gateway(object):
                     # put flags into dataset
                     new_qc_var = f"{dd_varname}_qc"
                     if isinstance(dd, pd.DataFrame):
-                        dd2[new_qc_var] = qc_results["qartod"][
-                            "gross_range_test"
-                        ]
+                        dd2[new_qc_var] = qc_results["qartod"]["gross_range_test"]
                     elif isinstance(dd, xr.Dataset):
                         new_data = qc_results["qartod"]["gross_range_test"]
                         dims = dd2[dd_varname].dims
@@ -438,10 +437,12 @@ class Gateway(object):
             for data in data_out:
                 for dataset_id, dd in data.items():
                     print(dataset_id)
-                    qckeys = dd2[[var for var in dd.data_vars if '_qc' in var]]
+                    qckeys = dd2[[var for var in dd.data_vars if "_qc" in var]]
                     for qckey in qckeys:
                         print(qckey)
                         for flag, desc in odg.qcdefs.items():
-                            print(f'Flag == {flag} ({desc}): {int((dd[qckey] == int(flag)).sum())}')                
-            
+                            print(
+                                f"Flag == {flag} ({desc}): {int((dd[qckey] == int(flag)).sum())}"
+                            )
+
         return data_out

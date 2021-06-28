@@ -3,16 +3,16 @@ Search through multiple ERDDAP and Axiom databases for datasets.
 """
 
 
+import ast
+import logging
+
 from pathlib import Path
-
-
-from .gateway import Gateway
-from .readers import axds, erddap, local
 
 import cf_xarray as cfxr
 import requests
-import ast
-import logging
+
+from .gateway import Gateway
+from .readers import axds, erddap, local
 
 
 try:
@@ -101,10 +101,4 @@ var_def = {
 }
 
 # QARTOD defs
-qcdefs = {
-                '4': 'FAIL',
-                '1': 'GOOD',
-                '9': 'MISSING',
-                '3': 'SUSPECT',
-                '2': 'UNKNOWN'
-}
+qcdefs = {"4": "FAIL", "1": "GOOD", "9": "MISSING", "3": "SUSPECT", "2": "UNKNOWN"}
