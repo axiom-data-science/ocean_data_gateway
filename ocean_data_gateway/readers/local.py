@@ -116,13 +116,11 @@ class LocalReader:
             for filename in self.filenames:
 
                 if "csv" in filename:
-                    # skip header row (row 1) that contains units since not
-                    # supported by intake. Don't need them for this step anyway.
-                    file_intake = intake.open_csv(filename, csv_kwargs={'skiprows':[1]})
+                    file_intake = intake.open_csv(filename)
                     data = file_intake.read()
-                    # Remove skiprows entry and input header entry that we want
-                    file_intake._csv_kwargs.pop('skiprows')
-                    file_intake._csv_kwargs.update({'header': [0,1]})
+                    #                     # Remove skiprows entry and input header entry that we want
+                    #                     file_intake._csv_kwargs.pop("skiprows")
+                    #                     file_intake._csv_kwargs.update({"header": [0, 1]})
                     metadata = {
                         "variables": list(data.columns.values),
                         "geospatial_lon_min": float(data["longitude"].min()),
