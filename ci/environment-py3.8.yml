@@ -21,6 +21,8 @@ dependencies:
   - netcdf4
   - numpy
   - pandas
+  - pint
+  - pint_xarray
   - pytest
   - requests
   - scipy

@@ -21,6 +21,8 @@ dependencies:
   - matplotlib
   - ocean_data_gateway
   - pandas
+  - pint
+  - pint_xarray
   - pytest
   - requests
   - scipy
