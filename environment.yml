@@ -6,6 +6,7 @@ dependencies:
   - pytest
   # Examples (remove and add as needed)
   - aiohttp
+  - cf_xarray>=0.6
   - dask
   - erddapy
   - flake8
