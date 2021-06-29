@@ -22,7 +22,7 @@ dependencies:
   - numpy
   - pandas
   - pint
-  - pint_xarray
+  - pint-xarray
   - pytest
   - requests
   - scipy

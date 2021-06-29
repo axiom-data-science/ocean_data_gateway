@@ -22,7 +22,7 @@ dependencies:
   - ocean_data_gateway
   - pandas
   - pint
-  - pint_xarray
+  - pint-xarray
   - pytest
   - requests
   - scipy
