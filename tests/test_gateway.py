@@ -1,11 +1,14 @@
 import cf_xarray
-from cf_xarray.units import units
+import numpy as np
 import pint_xarray
-pint_xarray.unit_registry = units
 
 # import ocean_data_gateway as odg
 import xarray as xr
-import numpy as np
+
+from cf_xarray.units import units
+
+
+pint_xarray.unit_registry = units
 
 
 def test_units():
@@ -14,7 +17,7 @@ def test_units():
     ds["lat"] = ("dim", np.arange(10), {"units": "degrees_north"})
     assert ds.pint.quantify()
 
-    
+
 # def test_QC():
 #     ds = xr.Dataset()
 #     ds["salt"] = ("dim", np.arange(10), {"units": "psu"})
