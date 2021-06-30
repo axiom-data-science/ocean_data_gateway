@@ -1,12 +1,10 @@
-import cf_xarray
-import numpy as np
-import pint_xarray
-import xarray as xr
+from cf_xarray.units import units  # isort:skip
+import pint_xarray  # isort:skip
 
-from cf_xarray.units import units
+pint_xarray.unit_registry = units  # isort:skip
 
-
-pint_xarray.unit_registry = units
+import numpy as np  # noqa: E402
+import xarray as xr  # noqa: E402
 
 
 def test_units():

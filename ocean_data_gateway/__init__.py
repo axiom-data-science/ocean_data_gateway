@@ -2,23 +2,21 @@
 Search through multiple ERDDAP and Axiom databases for datasets.
 """
 
-import ast
-import logging
-
-from pathlib import Path
-
 # these have to be imported here to prevent import order issues later
-import cf_xarray as cfxr
-import pint_xarray
-import requests
+import cf_xarray as cfxr  # isort:skip
+from cf_xarray.units import units  # isort:skip
+import pint_xarray  # isort:skip
 
-from cf_xarray.units import units
+pint_xarray.unit_registry = units  # isort:skip
+import ast  # noqa: E402
+import logging  # noqa: E402
 
-from .gateway import Gateway
-from .readers import axds, erddap, local
+from pathlib import Path  # noqa: E402
 
+import requests  # noqa: E402
 
-pint_xarray.unit_registry = units
+from .gateway import Gateway  # noqa: E402, F401
+from .readers import axds, erddap, local  # noqa: E402
 
 
 try:
