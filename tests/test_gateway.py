@@ -1,11 +1,13 @@
 import cf_xarray
-from cf_xarray.units import units
+import numpy as np
 import pint_xarray
+import xarray as xr
+
+from cf_xarray.units import units
+
+
 pint_xarray.unit_registry = units
 
-# import ocean_data_gateway as odg
-import xarray as xr
-import numpy as np
 
 def test_units():
     ds = xr.Dataset()
