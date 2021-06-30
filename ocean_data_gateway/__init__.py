@@ -2,6 +2,11 @@
 Search through multiple ERDDAP and Axiom databases for datasets.
 """
 
+# these have to be imported here to prevent import order issues later
+import cf_xarray
+from cf_xarray.units import units
+import pint_xarray
+pint_xarray.unit_registry = units
 
 import ast
 import logging
@@ -83,7 +88,7 @@ keys_kwargs = [
 my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/d2d72e85371520d770b2913c4ec6e965eac20dff/my_custom_criteria.py"
 response = requests.get(my_custom_criteria_gist)
 my_custom_criteria = ast.literal_eval(response.text)
-cfxr.accessor.set_options(my_custom_criteria)
+cfxr.set_options(custom_criteria=my_custom_criteria)
 
 # Principle variable list. These variable names need to match those in the gist.
 # units
