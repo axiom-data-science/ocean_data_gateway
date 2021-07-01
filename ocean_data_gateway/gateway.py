@@ -2,19 +2,19 @@
 This controls and connects to the individual readers.
 """
 
-import cf_xarray
-import pandas as pd
-import pint_xarray
-import xarray as xr
+import cf_xarray  # isort:skip
+from cf_xarray.units import units  # isort:skip
+import pint_xarray  # isort:skip
 
-from cf_xarray.units import units
-# from ioos_qc import qartod
-from ioos_qc.config import QcConfig
+pint_xarray.unit_registry = units  # isort:skip
 
-import ocean_data_gateway as odg
+import pandas as pd  # noqa: E402
+import pint_xarray  # noqa: E402
+import xarray as xr  # noqa: E402
 
+from ioos_qc.config import QcConfig  # noqa: E402
 
-pint_xarray.unit_registry = units
+import ocean_data_gateway as odg  # noqa: E402
 
 
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
@@ -342,13 +342,6 @@ class Gateway(object):
         data_out = []
         for data in self.data:
             for dataset_id, dd in data.items():
-
-                # Not anticipating having DataFrames come through here anymore,
-                # but keeping code in case that changes.
-                if isinstance(dd, pd.DataFrame):
-                    cols = list(list(zip(*dd.columns))[0])
-                elif isinstance(dd, xr.Dataset):
-                    cols = list(dd.cf.standard_names.keys())
 
                 # which custom variable names are in dataset
                 varnames = [
