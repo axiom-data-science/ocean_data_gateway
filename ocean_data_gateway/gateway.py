@@ -8,7 +8,7 @@ import pint_xarray
 import xarray as xr
 
 from cf_xarray.units import units
-from ioos_qc import qartod
+# from ioos_qc import qartod
 from ioos_qc.config import QcConfig
 
 import ocean_data_gateway as odg
@@ -430,8 +430,9 @@ class Gateway(object):
                         dims = dd2[dd_varname].dims
                         dd2[f"{dd_varname}_qc"] = (dims, new_data)
 
-                data[dataset_id] = dd2
-            data_out.append(data)
+                # data[dataset_id] = dd2
+                data_out.append({dataset_id: dd2})
+            # data_out.append(data)
 
         if verbose:
             for data in data_out:
