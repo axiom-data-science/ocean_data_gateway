@@ -469,7 +469,8 @@ class AxdsReader:
                             urlpath, csv_kwargs=dict(parse_dates=["time"])
                         )
                     elif self.filetype == "netcdf":
-                        urlpath = dataset["source"]["files"]["processed.nc"]["url"]
+                        key = [key for key in dataset["source"]["files"].keys() if '.nc' in key][0]
+                        urlpath = dataset["source"]["files"][key]["url"]
                         file_intake = intake.open_netcdf(
                             urlpath
                         )  # , xarray_kwargs=dict(parse_dates=['time']))
