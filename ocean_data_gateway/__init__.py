@@ -98,10 +98,26 @@ var_def = {
         "fail_span": [-100, 100],
         "suspect_span": [-10, 40],
     },
-    "salt": {"units": "psu", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "u": {"units": "m/s", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "v": {"units": "m/s", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-2, 3]},
+    "salt": {
+        "units": "psu",
+        "fail_span": [-10, 60],
+        "suspect_span": [-1, 45]
+    },
+    "u": {
+        "units": "m/s",
+        "fail_span": [-10, 10],
+        "suspect_span": [-5, 5]
+    },
+    "v": {
+        "units": "m/s",
+        "fail_span": [-10, 10],
+        "suspect_span": [-5, 5]
+    },
+    "ssh": {
+        "units": "m",
+        "fail_span": [-10, 10],
+        "suspect_span": [-3, 3]
+    },
 }
 
 # QARTOD defs
