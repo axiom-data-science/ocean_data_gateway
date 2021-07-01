@@ -426,10 +426,10 @@ class AxdsReader:
 
         # set up lines
         file_intake = intake.open_opendap(
-            urlpath, engine='netcdf4', xarray_kwargs=dict()
+            urlpath, engine="netcdf4", xarray_kwargs=dict()
         )
         file_intake.description = label
-        file_intake.engine = 'netcdf4'
+        file_intake.engine = "netcdf4"
         metadata = {
             "urlpath": urlpath,
             "variables": list(layer_groups.values()),
@@ -439,9 +439,9 @@ class AxdsReader:
             "geospatial_lat_min": geospatial_lat_min,
             "geospatial_lon_max": geospatial_lon_max,
             "geospatial_lat_max": geospatial_lat_max,
-            "time_coverage_start": dataset['start_date_time'],
-            "time_coverage_end": dataset['end_date_time'],
-            }
+            "time_coverage_start": dataset["start_date_time"],
+            "time_coverage_end": dataset["end_date_time"],
+        }
         file_intake.metadata = metadata
         file_intake.name = dataset_id
         lines = file_intake.yaml().strip("sources:")
@@ -469,7 +469,12 @@ class AxdsReader:
                             urlpath, csv_kwargs=dict(parse_dates=["time"])
                         )
                     elif self.filetype == "netcdf":
-                        urlpath = dataset["source"]["files"]["processed.nc"]["url"]
+                        key = [
+                            key
+                            for key in dataset["source"]["files"].keys()
+                            if ".nc" in key
+                        ][0]
+                        urlpath = dataset["source"]["files"][key]["url"]
                         file_intake = intake.open_netcdf(
                             urlpath
                         )  # , xarray_kwargs=dict(parse_dates=['time']))
@@ -477,7 +482,7 @@ class AxdsReader:
                     # source = intake.open_textfiles(meta_url, decoder=json.loads)
                     # source.metadata = source.read()[0]
                     meta_url = dataset["source"]["files"]["meta.json"]["url"]
-                    meta_url = meta_url.replace(' ','%20')
+                    meta_url = meta_url.replace(" ", "%20")
                     attributes = pd.read_json(meta_url)["attributes"]
                     file_intake.description = attributes["summary"]
                     metadata = {

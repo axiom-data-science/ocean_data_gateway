@@ -2,19 +2,21 @@
 Search through multiple ERDDAP and Axiom databases for datasets.
 """
 
-import ast
-import logging
+# these have to be imported here to prevent import order issues later
+import cf_xarray as cfxr  # isort:skip
+from cf_xarray.units import units  # isort:skip
+import pint_xarray  # isort:skip
 
-from pathlib import Path
+pint_xarray.unit_registry = units  # isort:skip
+import ast  # noqa: E402
+import logging  # noqa: E402
 
-import cf_xarray as cfxr
-import requests
+from pathlib import Path  # noqa: E402
 
-from .gateway import Gateway
-from .readers import axds, erddap, local
+import requests  # noqa: E402
 
-
-# from .utils import match_var
+from .gateway import Gateway  # noqa: E402, F401
+from .readers import axds, erddap, local  # noqa: E402
 
 
 try:
@@ -82,10 +84,10 @@ keys_kwargs = [
 # For variable identification with cf-xarray
 # custom_criteria to identify variables is saved here
 # https://gist.github.com/kthyng/c3cc27de6b4449e1776ce79215d5e732
-my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/1eeda7fe43976126235b710f4f733384fff2a788/my_custom_criteria.py"
+my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/d2d72e85371520d770b2913c4ec6e965eac20dff/my_custom_criteria.py"
 response = requests.get(my_custom_criteria_gist)
 my_custom_criteria = ast.literal_eval(response.text)
-cfxr.accessor.set_options(my_custom_criteria)
+cfxr.set_options(custom_criteria=my_custom_criteria)
 
 # Principle variable list. These variable names need to match those in the gist.
 # units
@@ -97,18 +99,10 @@ var_def = {
         "suspect_span": [-10, 40],
     },
     "salt": {"units": "psu", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "u": {"units": "m/s", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "v": {"units": "m/s", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-2, 3]},
+    "u": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
+    "v": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
+    "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-3, 3]},
 }
 
-# REGEX = {
-#     "temp": "temp|Celsius",
-#     "salt": "salt|salinity|psu",
-#     "vel": "u-momentum|u-velocity|v-momentum|v-velocity|velocity|u velocity|v velocity|m/s|meter second-1",
-#     "ssh": "zeta|ssh|mld|elevation|sea_surface|sea surface",
-#     "rho": "dense|density|kg/m^3",
-#     "depths": "bathy|depths|bathymetry",
-# }
-#
-# MED = {"air": "air|wind", "water": "water|sea"}
+# QARTOD defs
+qcdefs = {"4": "FAIL", "1": "GOOD", "9": "MISSING", "3": "SUSPECT", "2": "UNKNOWN"}

@@ -2,25 +2,19 @@
 This controls and connects to the individual readers.
 """
 
-import cf_xarray
-import pandas as pd
-import pint
-import pint_pandas
-import pint_xarray
+import cf_xarray  # isort:skip
+from cf_xarray.units import units  # isort:skip
+import pint_xarray  # isort:skip
 
-# from pint_xarray import unit_registry as ureg
-import xarray as xr
+pint_xarray.unit_registry = units  # isort:skip
 
-from cf_xarray.units import units
+import pandas as pd  # noqa: E402
+import pint_xarray  # noqa: E402
+import xarray as xr  # noqa: E402
 
-# from cf_xarray.units import units
-from ioos_qc import qartod
-from ioos_qc.config import QcConfig
+from ioos_qc.config import QcConfig  # noqa: E402
 
-import ocean_data_gateway as odg
-
-
-pint_xarray.unit_registry = units
+import ocean_data_gateway as odg  # noqa: E402
 
 
 # MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
@@ -316,7 +310,7 @@ class Gateway(object):
 
         return self._data
 
-    def qc(self):
+    def qc(self, verbose=False):
         """Light quality check on data.
 
         This runs one IOOS QARTOD on data as a first order quality check.
@@ -326,19 +320,28 @@ class Gateway(object):
 
         This is slow if your data is both chunks of time and space, so this
         should first narrow by both as much as possible.
+
+        Parameters
+        ----------
+        verbose: boolean, optional
+            If True, report summary statistics on QC flag distribution in datasets.
+
+        Returns
+        -------
+        Dataset with added variables for each variable in dataset that was checked, with name of [variable]+'_qc'.
+
+        Notes
+        -----
+        Code has been saved for data in DataFrames, but is changing so
+        that data will be in Datasets. This way, can use cf-xarray
+        functionality for custom variable names and easier to have
+        recognizable units for variables with netcdf than csv.
         """
 
         # loop over data in sources, so one per source in the list
         data_out = []
         for data in self.data:
             for dataset_id, dd in data.items():
-
-                # Not anticipating having DataFrames come through here anymore,
-                # but keeping code in case that changes.
-                if isinstance(dd, pd.DataFrame):
-                    cols = list(list(zip(*dd.columns))[0])
-                elif isinstance(dd, xr.Dataset):
-                    cols = list(dd.cf.standard_names.keys())
 
                 # which custom variable names are in dataset
                 varnames = [
@@ -412,16 +415,28 @@ class Gateway(object):
                     # qc_results = qc.run(inp=dd2.cf[cf_varname])  # this isn't working for some reason
 
                     # put flags into dataset
+                    new_qc_var = f"{dd_varname}_qc"
                     if isinstance(dd, pd.DataFrame):
-                        dd2[f"{dd_varname}_qc"] = qc_results["qartod"][
-                            "gross_range_test"
-                        ]
+                        dd2[new_qc_var] = qc_results["qartod"]["gross_range_test"]
                     elif isinstance(dd, xr.Dataset):
                         new_data = qc_results["qartod"]["gross_range_test"]
                         dims = dd2[dd_varname].dims
                         dd2[f"{dd_varname}_qc"] = (dims, new_data)
 
-                data[dataset_id] = dd2
-            data_out.append(data)
+                # data[dataset_id] = dd2
+                data_out.append({dataset_id: dd2})
+            # data_out.append(data)
+
+        if verbose:
+            for data in data_out:
+                for dataset_id, dd in data.items():
+                    print(dataset_id)
+                    qckeys = dd2[[var for var in dd.data_vars if "_qc" in var]]
+                    for qckey in qckeys:
+                        print(qckey)
+                        for flag, desc in odg.qcdefs.items():
+                            print(
+                                f"Flag == {flag} ({desc}): {int((dd[qckey] == int(flag)).sum())}"
+                            )
 
         return data_out

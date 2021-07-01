@@ -5,6 +5,7 @@ dependencies:
   - python=3.8
   ############## These will have to be adjusted to your specific project
   - aiohttp
+  - cf_xarray>=0.6
   - dask
   - erddapy
   - flake8
@@ -20,6 +21,8 @@ dependencies:
   - netcdf4
   - numpy
   - pandas
+  - pint
+  - pint-xarray
   - pytest
   - requests
   - scipy
