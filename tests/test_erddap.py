@@ -12,21 +12,19 @@ def test_station_ioos_1dataset_id_alltime():
 
 
 def test_station_ioos_1dataset_id():
+    dataset_id = "noaa_nos_co_ops_8771013"
     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-    station = odg.erddap.stations({"dataset_ids": "noaa_nos_co_ops_8771013", "kw": kw})
+    kwargs = {"dataset_ids": "noaa_nos_co_ops_8771013", "kw": kw, "parallel": False}
+    station = odg.erddap.stations(kwargs)
     assert station.kw == {"min_time": "2019-1-1", "max_time": "2019-1-2"}
     assert isinstance(station.meta, pd.DataFrame)
-    data = station.data
-    assert isinstance(data["noaa_nos_co_ops_8771013"], xr.Dataset)
+    data = station.data()
+    assert data[dataset_id] == station.data(dataset_id)
+    assert isinstance(data[dataset_id], xr.Dataset)
     # assert isinstance(data["noaa_nos_co_ops_8771013"], pd.DataFrame)
-    assert list(
-        station.data["noaa_nos_co_ops_8771013"]
-        .isel({"s.time": [0, -1]})["s.time"]
-        .values
-    ) == [
-        np.datetime64("2019-01-01T00:00:00.000000000"),
-        np.datetime64("2019-01-02T23:54:00.000000000"),
-    ]
+    data_times = data[dataset_id].cf.isel({"T": [0, -1]}).cf["T"]
+    known_times = [np.datetime64("2019-01-01"), np.datetime64("2019-01-02")]
+    assert (data_times == known_times).all()
 
 
 def test_station_ioos_2dataset_ids():
@@ -87,18 +85,20 @@ def test_station_ioos_2stations():
 #     )
 #     assert station.kw == kw
 #     assert isinstance(station.meta, pd.DataFrame)
-#
-#
-# def test_region_ioos():
-#     kw = {
-#         "min_time": "2019-1-1",
-#         "max_time": "2019-1-2",
-#         "min_lon": -95,
-#         "max_lon": -94,
-#         "min_lat": 27,
-#         "max_lat": 29,
-#     }
-#     variables = ["sea_water_practical_salinity"]
-#     region = odg.erddap.region({"kw": kw, "variables": variables})
-#     assert "tabs_b" in region.dataset_ids
-#     assert not region.meta.empty
+
+
+def test_region_ioos():
+    kw = {
+        "min_time": "2019-1-1",
+        "max_time": "2019-1-2",
+        "min_lon": -95,
+        "max_lon": -94,
+        "min_lat": 27,
+        "max_lat": 29,
+    }
+    # if the code can run with this, it can deal with having 2 variables input
+    # but not both variables in the datasets
+    variables = ["salinity", "sea_water_practical_salinity"]
+    region = odg.erddap.region({"kw": kw, "variables": variables})
+    assert "tabs_b" in region.dataset_ids
+    assert not region.meta.empty

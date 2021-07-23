@@ -301,14 +301,6 @@ class ErddapReader:
         ## include download link ##
         self.e.dataset_id = dataset_id
         if self.e.protocol == "tabledap":
-            # If any variables are not present, this doesn't work.
-            # if self.variables is not None:
-            #     self.e.variables = [
-            #         "time",
-            #         "longitude",
-            #         "latitude",
-            #         "station",
-            #     ] + self.variables
             # set the same time restraints as before
             self.e.constraints = {
                 "time<=": self.kw["max_time"],
@@ -395,10 +387,6 @@ class ErddapReader:
         Data is read into memory.
         """
 
-        # download_url = self.meta.loc[dataset_id, "download_url"]
-        # data variables in ds that are not the variables we searched for
-        #         varnames = self.meta.loc[dataset_id, 'variable names']
-
         if self.filetype == "csv":
             # if self.e.protocol == "tabledap":
             try:
@@ -418,7 +406,6 @@ class ErddapReader:
                     vp = [var for var in dataset_vars if var == selfvariable]
                     if len(vp) > 0:
                         vars_present.append(vp[0])
-                # CAN I QUERY AHEAD OF TIME TO SEE WHAT VARIABLES SHOULD BE THERE?
                 # If any variables are not present, this doesn't work.
                 if self.variables is not None:
                     self.e.variables = [
@@ -486,6 +473,16 @@ class ErddapReader:
                         var_list = set(dd.data_vars) - set(self.variables)
                         dd = dd.drop_vars(var_list)
 
+                    # the lon/lat are on the 'timeseries' singleton dimension
+                    # but the data_var variable was not, which messed up
+                    # cf-xarray
+                    if "timeseries" in dd.dims:
+                        for data_var in dd.data_vars:
+                            if "timeseries" not in dd[data_var].dims:
+                                dd[data_var] = dd[data_var].expand_dims(
+                                    dim="timeseries", axis=1
+                                )
+
                 except Exception as e:
                     logger.exception(e)
                     logger.warning("no data to be read in for %s" % dataset_id)
@@ -523,15 +520,24 @@ class ErddapReader:
                     logger.warning("no data to be read in for %s" % dataset_id)
                     dd = None
 
-        return (dataset_id, dd)
+        # return (dataset_id, dd)
+        return dd
 
-    @property
-    def data(self):
-        """Read in data for all dataset_ids.
+    # @property
+    def data(self, dataset_ids_read=None):
+        """Read in data for some or all dataset_ids_read.
+
+        Once data is read in for a dataset_ids_read, it is remembered.
+
+        Parameters
+        ----------
+        dataset_ids_read: string, list, optional
+            Read in data for dataset_ids_read specifically. If none are
+            provided, data will be read in for all `self.dataset_ids`.
 
         Returns
         -------
-        A dictionary with keys of the dataset_ids and values the data of type pandas DataFrame.
+        There is different behavior for different inputs. If `dataset_ids_read` is a string, the Dataset for that dataset_id will be returned. If `dataset_ids_read` is a list of dataset_ids or `dataset_ids_read==None`, a dictionary will be returned with keys of the dataset_ids and values the data of type pandas DataFrame.
 
         Notes
         -----
@@ -539,26 +545,47 @@ class ErddapReader:
         in serial.
         """
 
+        # first time called, set up self._data as a dict
         if not hasattr(self, "_data"):
+            self._data = {}
+
+        # for a single dataset_ids_read, just return that Dataset
+        if (dataset_ids_read is not None) and (isinstance(dataset_ids_read, str)):
+
+            assertion = "dataset_id is not valid for this search"
+            assert dataset_ids_read in self.dataset_ids, assertion
+
+            if dataset_ids_read not in self._data:
+                self._data[dataset_ids_read] = self.data_by_dataset(dataset_ids_read)
+            return self._data[dataset_ids_read]
+
+        # Read in data for user-input dataset_ids or all dataset_ids
+        elif (dataset_ids_read is None) or (
+            (dataset_ids_read is not None) and (isinstance(dataset_ids_read, list))
+        ):
+
+            if dataset_ids_read is None:
+                dataset_ids_to_use = self.dataset_ids
+            else:
+                dataset_ids_to_use = dataset_ids_read
+
+            # first find which dataset_ids_to_use haven't already been read in
+            dataset_ids_to_use = [
+                dataid for dataid in dataset_ids_to_use if dataid not in self._data
+            ]
 
             if self.parallel:
                 num_cores = multiprocessing.cpu_count()
                 downloads = Parallel(n_jobs=num_cores)(
-                    delayed(self.data_by_dataset)(dataset_id)
-                    for dataset_id in self.dataset_ids
+                    delayed(self.data_by_dataset)(dataid)
+                    for dataid in dataset_ids_to_use
                 )
+                for dataid, download in zip(dataset_ids_to_use, downloads):
+                    self._data[dataid] = download
+
             else:
-                downloads = []
-                for dataset_id in self.dataset_ids:
-                    downloads.append(self.data_by_dataset(dataset_id))
-
-            #             if downloads is not None:
-            dds = {dataset_id: dd for (dataset_id, dd) in downloads}
-            #             else:
-            #                 dds = None
-
-            # return dds
-            self._data = dds
+                for dataid in dataset_ids_to_use:
+                    self._data[dataid] = self.data_by_dataset(dataid)
 
         return self._data
 
