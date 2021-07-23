@@ -524,20 +524,20 @@ class ErddapReader:
         return dd
 
     # @property
-    def data(self, dataset_ids_read=None):
-        """Read in data for some or all dataset_ids_read.
+    def data(self, dataset_ids=None):
+        """Read in data for some or all dataset_ids.
 
-        Once data is read in for a dataset_ids_read, it is remembered.
+        Once data is read in for a dataset_ids, it is remembered.
 
         Parameters
         ----------
-        dataset_ids_read: string, list, optional
-            Read in data for dataset_ids_read specifically. If none are
+        dataset_ids: string, list, optional
+            Read in data for dataset_ids specifically. If none are
             provided, data will be read in for all `self.dataset_ids`.
 
         Returns
         -------
-        There is different behavior for different inputs. If `dataset_ids_read` is a string, the Dataset for that dataset_id will be returned. If `dataset_ids_read` is a list of dataset_ids or `dataset_ids_read==None`, a dictionary will be returned with keys of the dataset_ids and values the data of type pandas DataFrame.
+        There is different behavior for different inputs. If `dataset_ids` is a string, the Dataset for that dataset_id will be returned. If `dataset_ids` is a list of dataset_ids or `dataset_ids==None`, a dictionary will be returned with keys of the dataset_ids and values the data of type pandas DataFrame.
 
         Notes
         -----
@@ -545,49 +545,8 @@ class ErddapReader:
         in serial.
         """
 
-        # first time called, set up self._data as a dict
-        if not hasattr(self, "_data"):
-            self._data = {}
-
-        # for a single dataset_ids_read, just return that Dataset
-        if (dataset_ids_read is not None) and (isinstance(dataset_ids_read, str)):
-
-            assertion = "dataset_id is not valid for this search"
-            assert dataset_ids_read in self.dataset_ids, assertion
-
-            if dataset_ids_read not in self._data:
-                self._data[dataset_ids_read] = self.data_by_dataset(dataset_ids_read)
-            return self._data[dataset_ids_read]
-
-        # Read in data for user-input dataset_ids or all dataset_ids
-        elif (dataset_ids_read is None) or (
-            (dataset_ids_read is not None) and (isinstance(dataset_ids_read, list))
-        ):
-
-            if dataset_ids_read is None:
-                dataset_ids_to_use = self.dataset_ids
-            else:
-                dataset_ids_to_use = dataset_ids_read
-
-            # first find which dataset_ids_to_use haven't already been read in
-            dataset_ids_to_use = [
-                dataid for dataid in dataset_ids_to_use if dataid not in self._data
-            ]
-
-            if self.parallel:
-                num_cores = multiprocessing.cpu_count()
-                downloads = Parallel(n_jobs=num_cores)(
-                    delayed(self.data_by_dataset)(dataid)
-                    for dataid in dataset_ids_to_use
-                )
-                for dataid, download in zip(dataset_ids_to_use, downloads):
-                    self._data[dataid] = download
-
-            else:
-                for dataid in dataset_ids_to_use:
-                    self._data[dataid] = self.data_by_dataset(dataid)
-
-        return self._data
+        output = odg.utils.load_data(self, dataset_ids)
+        return output
 
     def count(self, url):
         """Small helper function to count len(results) at url."""

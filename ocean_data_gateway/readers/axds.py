@@ -703,17 +703,24 @@ sources:
                     )
                     data = None
 
-        return (dataset_id, data)
+        # return (dataset_id, data)
+        return data
 
-    @property
-    def data(self):
-        """Read in data for all dataset_ids.
+    # @property
+    def data(self, dataset_ids=None):
+        """Read in data for some or all dataset_ids.
+
+        Once data is read in for a dataset_ids, it is remembered.
+
+        Parameters
+        ----------
+        dataset_ids: string, list, optional
+            Read in data for dataset_ids specifically. If none are
+            provided, data will be read in for all `self.dataset_ids`.
 
         Returns
         -------
-        A dictionary with keys of the dataset_ids and values the data of type:
-        If `self.axds_type=='platform2'`: a pandas DataFrame
-        If `self.axds_type=='layer_group'`: an xarray Dataset
+        There is different behavior for different inputs. If `dataset_ids` is a string, the Dataset for that dataset_id will be returned. If `dataset_ids` is a list of dataset_ids or `dataset_ids==None`, a dictionary will be returned with keys of the dataset_ids and values the data of type pandas DataFrame.
 
         Notes
         -----
@@ -721,27 +728,8 @@ sources:
         in serial.
         """
 
-        if not hasattr(self, "_data"):
-
-            if self.parallel:
-                num_cores = multiprocessing.cpu_count()
-                downloads = Parallel(n_jobs=num_cores)(
-                    delayed(self.data_by_dataset)(dataset_id)
-                    for dataset_id in self.dataset_ids
-                )
-            else:
-                downloads = []
-                for dataset_id in self.dataset_ids:
-                    downloads.append(self.data_by_dataset(dataset_id))
-
-            #             if downloads is not None:
-            dds = {dataset_id: dd for (dataset_id, dd) in downloads}
-            #             else:
-            #                 dds = None
-
-            self._data = dds
-
-        return self._data
+        output = odg.utils.load_data(self, dataset_ids)
+        return output
 
     def save(self):
         """Save datasets locally."""

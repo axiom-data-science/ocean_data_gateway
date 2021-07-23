@@ -17,6 +17,7 @@ import requests  # noqa: E402
 
 from .gateway import Gateway  # noqa: E402, F401
 from .readers import axds, erddap, local  # noqa: E402
+from .utils import load_data, resample_like  # noqa: E402, F401
 
 
 try:
@@ -84,7 +85,7 @@ keys_kwargs = [
 # For variable identification with cf-xarray
 # custom_criteria to identify variables is saved here
 # https://gist.github.com/kthyng/c3cc27de6b4449e1776ce79215d5e732
-my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/d2d72e85371520d770b2913c4ec6e965eac20dff/my_custom_criteria.py"
+my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/be8409927b8743d4856f553c5639fb82d5a34d6b/my_custom_criteria.py"
 response = requests.get(my_custom_criteria_gist)
 my_custom_criteria = ast.literal_eval(response.text)
 cfxr.set_options(custom_criteria=my_custom_criteria)
