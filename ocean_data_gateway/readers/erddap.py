@@ -475,10 +475,12 @@ class ErddapReader:
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:
-                        # ERDDAP prepends variables with 's.' in netcdf files,
-                        # so include those with variables
-                        erd_vars = [f's.{var}' for var in self.variables]
-                        var_list = set(dd.data_vars) - (set(self.variables) | set(erd_vars))
+                        # I don't think this is true with new approach
+                        # # ERDDAP prepends variables with 's.' in netcdf files,
+                        # # so include those with variables
+                        # erd_vars = [f's.{var}' for var in self.variables]
+                        # var_list = set(dd.data_vars) - (set(self.variables) | set(erd_vars))
+                        var_list = set(dd.data_vars) - set(self.variables)
                         dd = dd.drop_vars(var_list)
 
                 except Exception as e:
