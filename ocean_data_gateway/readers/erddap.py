@@ -301,13 +301,14 @@ class ErddapReader:
         ## include download link ##
         self.e.dataset_id = dataset_id
         if self.e.protocol == "tabledap":
-            if self.variables is not None:
-                self.e.variables = [
-                    "time",
-                    "longitude",
-                    "latitude",
-                    "station",
-                ] + self.variables
+            # If any variables are not present, this doesn't work.
+            # if self.variables is not None:
+            #     self.e.variables = [
+            #         "time",
+            #         "longitude",
+            #         "latitude",
+            #         "station",
+            #     ] + self.variables
             # set the same time restraints as before
             self.e.constraints = {
                 "time<=": self.kw["max_time"],
@@ -316,7 +317,7 @@ class ErddapReader:
             if self.filetype == "csv":
                 download_url = self.e.get_download_url(response="csvp")
             elif self.filetype == "netcdf":
-                download_url = self.e.get_download_url(response="opendap")
+                download_url = self.e.get_download_url(response="ncCf")
 
         elif self.e.protocol == "griddap":
             # the search terms that can be input for tabledap do not work for griddap
@@ -394,20 +395,41 @@ class ErddapReader:
         Data is read into memory.
         """
 
-        download_url = self.meta.loc[dataset_id, "download_url"]
+        # download_url = self.meta.loc[dataset_id, "download_url"]
         # data variables in ds that are not the variables we searched for
         #         varnames = self.meta.loc[dataset_id, 'variable names']
 
         if self.filetype == "csv":
             # if self.e.protocol == "tabledap":
-
             try:
-
                 # fetch metadata if not already present
                 # found download_url from metadata and use
-                dd = pd.read_csv(
-                    download_url, header=[0, 1], index_col=0, parse_dates=True
-                )
+                self.e.dataset_id = dataset_id
+                # dataset_vars gives a list of the variables in the dataset
+                dataset_vars = self.meta.loc[dataset_id]['defaultDataQuery'].split('&')[0].split(',')
+                # vars_present gives the variables in self.variables
+                # that are actually in the dataset
+                vars_present = []
+                for selfvariable in self.variables:
+                    vp = [var for var in dataset_vars if var == selfvariable]
+                    if len(vp) > 0:
+                        vars_present.append(vp[0])
+                # CAN I QUERY AHEAD OF TIME TO SEE WHAT VARIABLES SHOULD BE THERE?
+                # If any variables are not present, this doesn't work.
+                if self.variables is not None:
+                    self.e.variables = [
+                        "time",
+                        "longitude",
+                        "latitude",
+                        "station",
+                    ] + vars_present
+                dd = self.e.to_pandas(response='csvp',
+                                      index_col=0, parse_dates=True)
+                # dd = self.e.to_pandas(response='csv', header=[0, 1],
+                #                       index_col=0, parse_dates=True)
+                # dd = pd.read_csv(
+                #     download_url, header=[0, 1], index_col=0, parse_dates=True
+                # )
 
                 # Drop cols and rows that are only NaNs.
                 dd = dd.dropna(axis="index", how="all").dropna(
@@ -441,18 +463,23 @@ class ErddapReader:
 
                 try:
                     # assume I don't need to narrow in space since time series (tabledap)
-                    dd = xr.open_dataset(download_url, chunks="auto")
-                    dd = dd.swap_dims({"s": dd.cf["time"].name})
+                    self.e.dataset_id = dataset_id
+                    dd = self.e.to_xarray()
+                    # dd = xr.open_dataset(download_url, chunks="auto")
+                    dd = dd.swap_dims({"obs": dd.cf["time"].name})
                     dd = dd.sortby(dd.cf["time"], ascending=True)
                     dd = dd.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
-                    dd = dd.set_coords(
-                        [dd.cf["longitude"].name, dd.cf["latitude"].name]
-                    )
+                    # dd = dd.set_coords(
+                    #     [dd.cf["longitude"].name, dd.cf["latitude"].name]
+                    # )
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:
-                        l = set(dd.data_vars) - set(self.variables)
-                        dd = dd.drop_vars(l)
+                        # ERDDAP prepends variables with 's.' in netcdf files,
+                        # so include those with variables
+                        erd_vars = [f's.{var}' for var in self.variables]
+                        var_list = set(dd.data_vars) - (set(self.variables) | set(erd_vars))
+                        dd = dd.drop_vars(var_list)
 
                 except Exception as e:
                     logger.exception(e)
@@ -462,9 +489,14 @@ class ErddapReader:
             elif self.e.protocol == "griddap":
 
                 try:
-                    dd = xr.open_dataset(download_url, chunks="auto").sel(
+                    self.e.dataset_id = dataset_id
+                    dd = self.e.to_xarray(chunks="auto").sel(
                         time=slice(self.kw["min_time"], self.kw["max_time"])
                     )
+
+                    # dd = xr.open_dataset(download_url, chunks="auto").sel(
+                    #     time=slice(self.kw["min_time"], self.kw["max_time"])
+                    # )
 
                     if ("min_lat" in self.kw) and ("max_lat" in self.kw):
                         dd = dd.sel(
@@ -478,8 +510,8 @@ class ErddapReader:
 
                     # use variable names to drop other variables (should. Ido this?)
                     if self.variables is not None:
-                        l = set(dd.data_vars) - set(self.variables)
-                        dd = dd.drop_vars(l)
+                        vars_list = set(dd.data_vars) - set(self.variables)
+                        dd = dd.drop_vars(vars_list)
 
                 except Exception as e:
                     logger.exception(e)
