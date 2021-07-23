@@ -406,7 +406,11 @@ class ErddapReader:
                 # found download_url from metadata and use
                 self.e.dataset_id = dataset_id
                 # dataset_vars gives a list of the variables in the dataset
-                dataset_vars = self.meta.loc[dataset_id]['defaultDataQuery'].split('&')[0].split(',')
+                dataset_vars = (
+                    self.meta.loc[dataset_id]["defaultDataQuery"]
+                    .split("&")[0]
+                    .split(",")
+                )
                 # vars_present gives the variables in self.variables
                 # that are actually in the dataset
                 vars_present = []
@@ -423,8 +427,7 @@ class ErddapReader:
                         "latitude",
                         "station",
                     ] + vars_present
-                dd = self.e.to_pandas(response='csvp',
-                                      index_col=0, parse_dates=True)
+                dd = self.e.to_pandas(response="csvp", index_col=0, parse_dates=True)
                 # dd = self.e.to_pandas(response='csv', header=[0, 1],
                 #                       index_col=0, parse_dates=True)
                 # dd = pd.read_csv(
