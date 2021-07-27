@@ -73,6 +73,9 @@ class ErddapReader:
         """
         self.parallel = parallel
 
+        # hard wire this for now
+        filetype = 'netcdf'
+
         # either select a known server or input protocol and server string
         if known_server == "ioos":
             protocol = "tabledap"
@@ -475,7 +478,9 @@ class ErddapReader:
 
                     # the lon/lat are on the 'timeseries' singleton dimension
                     # but the data_var variable was not, which messed up
-                    # cf-xarray
+                    # cf-xarray. When longitude and latitude are not on a
+                    # dimension shared with a variable, the variable can't be
+                    # called with cf-xarray. e.g. dd.cf['ssh'] won't work.
                     if "timeseries" in dd.dims:
                         for data_var in dd.data_vars:
                             if "timeseries" not in dd[data_var].dims:
