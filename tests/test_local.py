@@ -15,10 +15,10 @@ if os.path.exists(fname):
     ds = xr.open_dataset(fname)
 else:
     ds = xr.Dataset()
-    ds["time"] = ("dim", np.arange(10), {"standard_name": "time"})
-    ds["longitude"] = ("dim", np.arange(10), {"standard_name": "longitude"})
-    ds["latitude"] = ("dim", np.arange(10), {"standard_name": "latitude"})
-    ds["temperature"] = ("dim", np.arange(10), {"units": "degree_Celsius"})
+    ds["time"] = ("time", np.arange(10), {"standard_name": "time"})
+    ds["longitude"] = ("time", np.arange(10), {"standard_name": "longitude"})
+    ds["latitude"] = ("time", np.arange(10), {"standard_name": "latitude"})
+    ds["temperature"] = ("time", np.arange(10), {"units": "degree_Celsius"})
     ds.to_netcdf(fname)
 
 
@@ -39,4 +39,4 @@ def test_local_netcdf():
     data = odg.local.stations({"filenames": filenames[0]})
 
     assert data.dataset_ids == [fname]
-    assert np.allclose(data.data[fname]["time"], np.arange(10))
+    assert np.allclose(data.data(fname)["time"], np.arange(10))

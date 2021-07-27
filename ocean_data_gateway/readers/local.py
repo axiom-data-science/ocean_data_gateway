@@ -283,7 +283,7 @@ class LocalReader:
 
     #         return (dataset_id, self.catalog[dataset_id].read())
 
-    @property
+    # @property
     def data(self, dataset_ids=None):
         """Read in data for some or all dataset_ids.
 
