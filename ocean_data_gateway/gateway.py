@@ -310,7 +310,7 @@ class Gateway(object):
 
         return self._data
 
-    def qc(self, verbose=False):
+    def qc(self, verbose=False, dataset_ids=None):
         """Light quality check on data.
 
         This runs one IOOS QARTOD on data as a first order quality check.
@@ -325,6 +325,10 @@ class Gateway(object):
         ----------
         verbose: boolean, optional
             If True, report summary statistics on QC flag distribution in datasets.
+        dataset_ids: list of lists, optional
+            Read in data for dataset_ids specifically. They need to be nested in
+            lists that match the order of the readers. If none are
+            provided, data will be read in for all `self.dataset_ids`.
 
         Returns
         -------
@@ -338,10 +342,17 @@ class Gateway(object):
         recognizable units for variables with netcdf than csv.
         """
 
-        # loop over data in sources, so one per source in the list
+        if dataset_ids is None:
+            data_ids = self.dataset_ids
+        else:
+            data_ids = dataset_ids
+
         data_out = []
-        for data in self.data:
-            for dataset_id, dd in data.items():
+        for dataset_ids_reader, data in zip(data_ids, self.data):
+            data_out_temp = {}  # add level
+            for dataset_id in dataset_ids_reader:
+                # access the Dataset
+                dd = data(dataset_ids=dataset_id)
 
                 # which custom variable names are in dataset
                 varnames = [
@@ -424,8 +435,8 @@ class Gateway(object):
                         dd2[f"{dd_varname}_qc"] = (dims, new_data)
 
                 # data[dataset_id] = dd2
-                data_out.append({dataset_id: dd2})
-            # data_out.append(data)
+                data_out_temp[dataset_id] = dd2
+            data_out.append(data_out_temp)
 
         if verbose:
             for data in data_out:
