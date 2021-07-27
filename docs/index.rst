@@ -11,6 +11,7 @@ Welcome to ocean_data_gateway's documentation!
 
    demo
    details
+   utils
    api
 
 
