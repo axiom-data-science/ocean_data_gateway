@@ -534,20 +534,7 @@ class ErddapReader:
 
         Once data is read in for a dataset_ids, it is remembered.
 
-        Parameters
-        ----------
-        dataset_ids: string, list, optional
-            Read in data for dataset_ids specifically. If none are
-            provided, data will be read in for all `self.dataset_ids`.
-
-        Returns
-        -------
-        There is different behavior for different inputs. If `dataset_ids` is a string, the Dataset for that dataset_id will be returned. If `dataset_ids` is a list of dataset_ids or `dataset_ids==None`, a dictionary will be returned with keys of the dataset_ids and values the data of type pandas DataFrame.
-
-        Notes
-        -----
-        This is either done in parallel with the `multiprocessing` library or
-        in serial.
+        See full documentation in `utils.load_data()`.
         """
 
         output = odg.utils.load_data(self, dataset_ids)
