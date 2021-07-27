@@ -248,6 +248,7 @@ class Gateway(object):
             dataset_ids = []
             for source in self.sources:
 
+                # dataset_ids.extend(source.dataset_ids)
                 dataset_ids.append(source.dataset_ids)
 
             self._dataset_ids = dataset_ids
@@ -281,15 +282,16 @@ class Gateway(object):
             # loop over data sources to read in metadata
             meta = []
             for source in self.sources:
-
                 meta.append(source.meta)
 
             self._meta = meta
+            # # merge metadata into one DataFrame
+            # self._meta = pd.concat(meta, axis=1)
 
         return self._meta
 
     @property
-    def data(self):
+    def data(self):#, dataset_ids=dataset_ids):
         """Return the data, given metadata.
 
         Notes
@@ -304,8 +306,16 @@ class Gateway(object):
             data = []
             for source in self.sources:
 
+                # import pdb; pdb.set_trace()
                 data.append(source.data)
+                # data.append(source.data[dataset_ids])
+                # data.append(source.data(dataset_ids=dataset_ids))
 
+            # import pdb; pdb.set_trace()
+            # # make dict from individual dicts
+            # from collections import ChainMap
+            #
+            # data = ChainMap(*[d() for d in data])
             self._data = data
 
         return self._data
