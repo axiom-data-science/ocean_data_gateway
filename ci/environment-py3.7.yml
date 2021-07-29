@@ -9,6 +9,7 @@ dependencies:
   - dask
   - erddapy
   - flake8
+  - h5netcdf
   - intake
   - intake-xarray
   - ioos_qc
@@ -22,6 +23,7 @@ dependencies:
   - numpy
   - pandas
   - pint
+  - pint-pandas
   - pint-xarray
   - pytest
   - requests
