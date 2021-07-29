@@ -27,17 +27,22 @@ def test_station_platforms_1dataset_id():
     kw = {"min_time": "2020-8-1", "max_time": "2020-8-2"}
     dataset_ids = "c61eecf1-1c0e-5287-b6fb-a92b51b14d54"
     station = odg.axds.stations(
-        {"axds_type": "platform2", "dataset_ids": dataset_ids, "kw": kw}
+        {
+            "axds_type": "platform2",
+            "dataset_ids": dataset_ids,
+            "kw": kw,
+            "parallel": False,
+        }
     )
     assert station.kw == {"min_time": "2020-8-1", "max_time": "2020-8-2"}
     assert station.dataset_ids == [dataset_ids]
     assert not station.meta.empty
     assert isinstance(station.meta, pd.DataFrame)
     data = station.data()
-    assert isinstance(data[dataset_ids], pd.DataFrame)
-    assert list(data[dataset_ids].index[[0, -1]].sort_values().values) == [
-        np.datetime64("2020-08-01T00:00:00.000000000"),
-        np.datetime64("2020-08-02T23:50:21.000000000"),
+    assert isinstance(data[dataset_ids], xr.Dataset)
+    assert list(data[dataset_ids].isel({"time": [0, -1]})["time"].values) == [
+        np.datetime64("2020-08-01T00:14:15.440860160"),
+        np.datetime64("2020-08-02T23:30:44.189208832"),
     ]
 
 
@@ -60,7 +65,7 @@ def test_station_platforms_1station():
     stations = odg.axds.stations(
         {"axds_type": "platform2", "stations": stationname, "kw": kw}
     )
-    assert stations.dataset_ids == [dataset_id]
+    assert dataset_id in stations.dataset_ids
 
 
 # Test layer_groups, stations
@@ -75,7 +80,7 @@ def test_station_layer_group_1station_alltime():
     assert station.dataset_ids == dataset_ids
 
 
-# Slow on CI
+# # Slow on CI
 # def test_station_layer_group_1station():
 #     kw = {"min_time": "2021-4-1", "max_time": "2021-4-2"}
 #     # 1 SFBOFS layer_group
@@ -83,19 +88,19 @@ def test_station_layer_group_1station_alltime():
 #     # SFBOFS module uuid
 #     dataset_ids = ["03158b5d-f712-45f2-b05d-e4954372c1ce"]
 #     station = odg.axds.stations(
-#         {"axds_type": "layer_group", "stations": stations, "kw": kw}
+#         {"axds_type": "layer_group", "stations": stations, "kw": kw, "parallel": False}
 #     )
 #     assert station.kw == kw
 #     assert isinstance(station.meta, pd.DataFrame)
 #     assert not station.meta.empty
-# data = station.data()
-# assert isinstance(data[dataset_ids[0]], xr.Dataset)
-# assert list(data[dataset_ids[0]].ocean_time[[0, -1]].values) == [
-#     np.datetime64("2021-04-01T00:00:00.000000000"),
-#     np.datetime64("2021-04-02T23:00:00.000000000"),
-# ]
-
-
+#     data = station.data
+#     assert isinstance(data[dataset_ids[0]], xr.Dataset)
+#     assert list(data[dataset_ids[0]].ocean_time[[0, -1]].values) == [
+#         np.datetime64("2021-04-01T00:00:00.000000000"),
+#         np.datetime64("2021-04-02T23:00:00.000000000"),
+#     ]
+#
+#
 # def test_station_layer_group_2dataset_ids():
 #     kw = {"min_time": "2021-4-1", "max_time": "2021-4-2"}
 #     # 2 SFBOFS layer_groups

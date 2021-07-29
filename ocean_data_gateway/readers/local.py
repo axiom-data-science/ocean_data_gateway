@@ -118,6 +118,9 @@ class LocalReader:
                 if "csv" in filename:
                     file_intake = intake.open_csv(filename)
                     data = file_intake.read()
+                    #                     # Remove skiprows entry and input header entry that we want
+                    #                     file_intake._csv_kwargs.pop("skiprows")
+                    #                     file_intake._csv_kwargs.update({"header": [0, 1]})
                     metadata = {
                         "variables": list(data.columns.values),
                         "geospatial_lon_min": float(data["longitude"].min()),
@@ -275,48 +278,22 @@ class LocalReader:
         data = self.catalog[dataset_id].read()
         #         data = data.set_index('time')
         #         data = data[self.kw['min_time']:self.kw['max_time']]
-
-        return (dataset_id, data)
+        return data
+        # return (dataset_id, data)
 
     #         return (dataset_id, self.catalog[dataset_id].read())
 
     # @property
-    def data(self):
-        """Read in data for all dataset_ids.
+    def data(self, dataset_ids=None):
+        """Read in data for some or all dataset_ids.
 
-        Returns
-        -------
-        A dictionary with keys of the dataset_ids and values the data of type:
-        If `filename` is a csv file: a pandas DataFrame
-        If `filename` is a netcdf file: an xarray Dataset
+        Once data is read in for a dataset_ids, it is remembered.
 
-        Notes
-        -----
-        This is either done in parallel with the `multiprocessing` library or
-        in serial.
+        See full documentation in `utils.load_data()`.
         """
 
-        if not hasattr(self, "_data"):
-
-            if self.parallel:
-                num_cores = multiprocessing.cpu_count()
-                downloads = Parallel(n_jobs=num_cores)(
-                    delayed(self.data_by_dataset)(dataset_id)
-                    for dataset_id in self.dataset_ids
-                )
-            else:
-                downloads = []
-                for dataset_id in self.dataset_ids:
-                    downloads.append(self.data_by_dataset(dataset_id))
-
-            #             if downloads is not None:
-            dds = {dataset_id: dd for (dataset_id, dd) in downloads}
-            #             else:
-            #                 dds = None
-
-            self._data = dds
-
-        return self._data
+        output = odg.utils.load_data(self, dataset_ids)
+        return output
 
 
 class region(LocalReader):

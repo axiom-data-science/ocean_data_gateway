@@ -5,24 +5,27 @@ dependencies:
   # Required for full project functionality (dont remove)
   - pytest
   # Examples (remove and add as needed)
+  - aiohttp
+  - cf_xarray>=0.6
+  - dask
+  - erddapy
+  - flake8
+  - h5netcdf
+  - intake
+  - intake-xarray
+  - ioos_qc
+  - ipython
+  - isort
+  - joblib
   - jupyter
   - jupyterlab
-  - numpy
-  - scipy
-  - dask
-  - netcdf4
   - matplotlib
-  - joblib
-  - shapely
-  - intake
   - ocean_data_gateway
   - pandas
-  - xarray
-  - requests
-  - flake8
-  - isort
-  - erddapy
+  - pint
+  - pint-pandas
+  - pint-xarray
   - pytest
-  - ipython
-  - aiohttp
-  - intake-xarray
+  - requests
+  - scipy
+  - xarray

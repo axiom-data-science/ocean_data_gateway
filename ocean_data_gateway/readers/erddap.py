@@ -6,6 +6,7 @@ import logging
 import multiprocessing
 import re
 
+import cf_xarray
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -72,13 +73,18 @@ class ErddapReader:
         """
         self.parallel = parallel
 
+        # hard wire this for now
+        filetype = "netcdf"
+
         # either select a known server or input protocol and server string
         if known_server == "ioos":
             protocol = "tabledap"
             server = "http://erddap.sensors.ioos.us/erddap"
+            filetype = "netcdf"  # other option: "csv"
         elif known_server == "coastwatch":
             protocol = "griddap"
             server = "http://coastwatch.pfeg.noaa.gov/erddap"
+            filetype = "netcdf"  # other option: "csv"
         elif known_server is not None:
             statement = (
                 "either select a known server or input protocol and server string"
@@ -95,6 +101,7 @@ class ErddapReader:
         self.e = ERDDAP(server=server)
         self.e.protocol = protocol
         self.e.server = server
+        self.filetype = filetype
 
         # columns for metadata
         self.columns = [
@@ -297,19 +304,15 @@ class ErddapReader:
         ## include download link ##
         self.e.dataset_id = dataset_id
         if self.e.protocol == "tabledap":
-            if self.variables is not None:
-                self.e.variables = [
-                    "time",
-                    "longitude",
-                    "latitude",
-                    "station",
-                ] + self.variables
             # set the same time restraints as before
             self.e.constraints = {
                 "time<=": self.kw["max_time"],
                 "time>=": self.kw["min_time"],
             }
-            download_url = self.e.get_download_url(response="csvp")
+            if self.filetype == "csv":
+                download_url = self.e.get_download_url(response="csvp")
+            elif self.filetype == "netcdf":
+                download_url = self.e.get_download_url(response="ncCf")
 
         elif self.e.protocol == "griddap":
             # the search terms that can be input for tabledap do not work for griddap
@@ -318,8 +321,18 @@ class ErddapReader:
             # get opendap link
             download_url = self.e.get_download_url(response="opendap")
 
+        # check if "prediction" is present in metadata, esp in case of NOAA
+        # model predictions
+        is_prediction = "Prediction" in " ".join(
+            list(info["Value"].replace(np.nan, None).values)
+        )
+
         # add erddap server name
-        return {dataset_id: [self.e.server, download_url] + items + [self.variables]}
+        return {
+            dataset_id: [self.e.server, download_url, info_url, is_prediction]
+            + items
+            + [self.variables]
+        }
 
     @property
     def meta(self):
@@ -358,7 +371,7 @@ class ErddapReader:
             self._meta = pd.DataFrame.from_dict(
                 meta,
                 orient="index",
-                columns=["database", "download_url"]
+                columns=["database", "download_url", "info_url", "is_prediction"]
                 + self.columns
                 + ["variable names"],
             )
@@ -377,17 +390,39 @@ class ErddapReader:
         Data is read into memory.
         """
 
-        download_url = self.meta.loc[dataset_id, "download_url"]
-        # data variables in ds that are not the variables we searched for
-        #         varnames = self.meta.loc[dataset_id, 'variable names']
-
-        if self.e.protocol == "tabledap":
-
+        if self.filetype == "csv":
+            # if self.e.protocol == "tabledap":
             try:
-
                 # fetch metadata if not already present
                 # found download_url from metadata and use
-                dd = pd.read_csv(download_url, index_col=0, parse_dates=True)
+                self.e.dataset_id = dataset_id
+                # dataset_vars gives a list of the variables in the dataset
+                dataset_vars = (
+                    self.meta.loc[dataset_id]["defaultDataQuery"]
+                    .split("&")[0]
+                    .split(",")
+                )
+                # vars_present gives the variables in self.variables
+                # that are actually in the dataset
+                vars_present = []
+                for selfvariable in self.variables:
+                    vp = [var for var in dataset_vars if var == selfvariable]
+                    if len(vp) > 0:
+                        vars_present.append(vp[0])
+                # If any variables are not present, this doesn't work.
+                if self.variables is not None:
+                    self.e.variables = [
+                        "time",
+                        "longitude",
+                        "latitude",
+                        "station",
+                    ] + vars_present
+                dd = self.e.to_pandas(response="csvp", index_col=0, parse_dates=True)
+                # dd = self.e.to_pandas(response='csv', header=[0, 1],
+                #                       index_col=0, parse_dates=True)
+                # dd = pd.read_csv(
+                #     download_url, header=[0, 1], index_col=0, parse_dates=True
+                # )
 
                 # Drop cols and rows that are only NaNs.
                 dd = dd.dropna(axis="index", how="all").dropna(
@@ -414,67 +449,96 @@ class ErddapReader:
                 logger.warning("no data to be read in for %s" % dataset_id)
                 dd = None
 
-        elif self.e.protocol == "griddap":
+        elif self.filetype == "netcdf":
+            # elif self.e.protocol == "griddap":
 
-            try:
-                dd = xr.open_dataset(download_url, chunks="auto").sel(
-                    time=slice(self.kw["min_time"], self.kw["max_time"])
-                )
+            if self.e.protocol == "tabledap":
 
-                if ("min_lat" in self.kw) and ("max_lat" in self.kw):
-                    dd = dd.sel(latitude=slice(self.kw["min_lat"], self.kw["max_lat"]))
+                try:
+                    # assume I don't need to narrow in space since time series (tabledap)
+                    self.e.dataset_id = dataset_id
+                    dd = self.e.to_xarray()
+                    # dd = xr.open_dataset(download_url, chunks="auto")
+                    dd = dd.swap_dims({"obs": dd.cf["time"].name})
+                    dd = dd.sortby(dd.cf["time"], ascending=True)
+                    dd = dd.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
+                    # dd = dd.set_coords(
+                    #     [dd.cf["longitude"].name, dd.cf["latitude"].name]
+                    # )
 
-                if ("min_lon" in self.kw) and ("max_lon" in self.kw):
-                    dd = dd.sel(longitude=slice(self.kw["min_lon"], self.kw["max_lon"]))
+                    # use variable names to drop other variables (should. Ido this?)
+                    if self.variables is not None:
+                        # I don't think this is true with new approach
+                        # # ERDDAP prepends variables with 's.' in netcdf files,
+                        # # so include those with variables
+                        # erd_vars = [f's.{var}' for var in self.variables]
+                        # var_list = set(dd.data_vars) - (set(self.variables) | set(erd_vars))
+                        var_list = set(dd.data_vars) - set(self.variables)
+                        dd = dd.drop_vars(var_list)
 
-                # use variable names to drop other variables (should. Ido this?)
-                if self.variables is not None:
-                    l = set(dd.data_vars) - set(self.variables)
-                    dd = dd.drop_vars(l)
+                    # the lon/lat are on the 'timeseries' singleton dimension
+                    # but the data_var variable was not, which messed up
+                    # cf-xarray. When longitude and latitude are not on a
+                    # dimension shared with a variable, the variable can't be
+                    # called with cf-xarray. e.g. dd.cf['ssh'] won't work.
+                    if "timeseries" in dd.dims:
+                        for data_var in dd.data_vars:
+                            if "timeseries" not in dd[data_var].dims:
+                                dd[data_var] = dd[data_var].expand_dims(
+                                    dim="timeseries", axis=1
+                                )
 
-            except Exception as e:
-                logger.exception(e)
-                logger.warning("no data to be read in for %s" % dataset_id)
-                dd = None
+                except Exception as e:
+                    logger.exception(e)
+                    logger.warning("no data to be read in for %s" % dataset_id)
+                    dd = None
 
-        return (dataset_id, dd)
+            elif self.e.protocol == "griddap":
+
+                try:
+                    self.e.dataset_id = dataset_id
+                    dd = self.e.to_xarray(chunks="auto").sel(
+                        time=slice(self.kw["min_time"], self.kw["max_time"])
+                    )
+
+                    # dd = xr.open_dataset(download_url, chunks="auto").sel(
+                    #     time=slice(self.kw["min_time"], self.kw["max_time"])
+                    # )
+
+                    if ("min_lat" in self.kw) and ("max_lat" in self.kw):
+                        dd = dd.sel(
+                            latitude=slice(self.kw["min_lat"], self.kw["max_lat"])
+                        )
+
+                    if ("min_lon" in self.kw) and ("max_lon" in self.kw):
+                        dd = dd.sel(
+                            longitude=slice(self.kw["min_lon"], self.kw["max_lon"])
+                        )
+
+                    # use variable names to drop other variables (should. Ido this?)
+                    if self.variables is not None:
+                        vars_list = set(dd.data_vars) - set(self.variables)
+                        dd = dd.drop_vars(vars_list)
+
+                except Exception as e:
+                    logger.exception(e)
+                    logger.warning("no data to be read in for %s" % dataset_id)
+                    dd = None
+
+        # return (dataset_id, dd)
+        return dd
 
     # @property
-    def data(self):
-        """Read in data for all dataset_ids.
+    def data(self, dataset_ids=None):
+        """Read in data for some or all dataset_ids.
 
-        Returns
-        -------
-        A dictionary with keys of the dataset_ids and values the data of type pandas DataFrame.
+        Once data is read in for a dataset_ids, it is remembered.
 
-        Notes
-        -----
-        This is either done in parallel with the `multiprocessing` library or
-        in serial.
+        See full documentation in `utils.load_data()`.
         """
 
-        # if not hasattr(self, '_data'):
-
-        if self.parallel:
-            num_cores = multiprocessing.cpu_count()
-            downloads = Parallel(n_jobs=num_cores)(
-                delayed(self.data_by_dataset)(dataset_id)
-                for dataset_id in self.dataset_ids
-            )
-        else:
-            downloads = []
-            for dataset_id in self.dataset_ids:
-                downloads.append(self.data_by_dataset(dataset_id))
-
-        #             if downloads is not None:
-        dds = {dataset_id: dd for (dataset_id, dd) in downloads}
-        #             else:
-        #                 dds = None
-
-        return dds
-        # self._data = dds
-
-        # return self._data
+        output = odg.utils.load_data(self, dataset_ids)
+        return output
 
     def count(self, url):
         """Small helper function to count len(results) at url."""

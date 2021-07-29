@@ -8,11 +8,12 @@ import multiprocessing
 import os
 import re
 
+import fsspec
 import intake
 import numpy as np
 import pandas as pd
 import requests
-import shapely.wkt
+import xarray as xr
 
 from joblib import Parallel, delayed
 
@@ -56,7 +57,9 @@ class AxdsReader:
         Reader name: AxdsReader
     """
 
-    def __init__(self, parallel=True, catalog_name=None, axds_type="platform2"):
+    def __init__(
+        self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"
+    ):
         """
         Parameters
         ----------
@@ -111,6 +114,8 @@ class AxdsReader:
         self.name = f"axds_{axds_type}"
 
         self.reader = "AxdsReader"
+
+        self.filetype = filetype
 
     def url_query(self, query):
         """url modification to add query field.
@@ -419,26 +424,28 @@ class AxdsReader:
             dataset["data"]["max_lng"],
         )
 
-        lines = f"""
-  {dataset_id}:
-    description: {label}
-    driver: opendap
-    args:
-      urlpath: {urlpath}
-      engine: 'netcdf4'
-      xarray_kwargs:
-    metadata:
-      variables: {list(layer_groups.values())}
-      layer_group_uuids: {list(layer_groups.keys())}
-      model_slug: {model_slug}
-      geospatial_lon_min: {geospatial_lon_min}
-      geospatial_lat_min: {geospatial_lat_min}
-      geospatial_lon_max: {geospatial_lon_max}
-      geospatial_lat_max: {geospatial_lat_max}
-      time_coverage_start: {dataset['start_date_time']}
-      time_coverage_end: {dataset['end_date_time']}
+        # set up lines
+        file_intake = intake.open_opendap(
+            urlpath, engine="netcdf4", xarray_kwargs=dict()
+        )
+        file_intake.description = label
+        file_intake.engine = "netcdf4"
+        metadata = {
+            "urlpath": urlpath,
+            "variables": list(layer_groups.values()),
+            "layer_group_uuids": list(layer_groups.keys()),
+            "model_slug": model_slug,
+            "geospatial_lon_min": geospatial_lon_min,
+            "geospatial_lat_min": geospatial_lat_min,
+            "geospatial_lon_max": geospatial_lon_max,
+            "geospatial_lat_max": geospatial_lat_max,
+            "time_coverage_start": dataset["start_date_time"],
+            "time_coverage_end": dataset["end_date_time"],
+        }
+        file_intake.metadata = metadata
+        file_intake.name = dataset_id
+        lines = file_intake.yaml().strip("sources:")
 
-"""
         return lines
 
     def write_catalog(self):
@@ -454,47 +461,46 @@ class AxdsReader:
 
             if self.axds_type == "platform2":
                 lines = "sources:\n"
+
                 for dataset_id, dataset in self.search_results.items():
-                    label = dataset["label"].replace(":", "-")
-                    urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
-                    metavars = dataset["source"]["meta"]["variables"]
-                    Vars, standard_names = zip(
-                        *[
-                            (key, metavars[key]["attributes"]["standard_name"])
-                            for key in metavars.keys()
-                            if ("attributes" in metavars[key].keys())
-                            and ("standard_name" in metavars[key]["attributes"])
-                        ]
-                    )
-                    P = shapely.wkt.loads(dataset["data"]["geospatial_bounds"])
-                    (
-                        geospatial_lon_min,
-                        geospatial_lat_min,
-                        geospatial_lon_max,
-                        geospatial_lat_max,
-                    ) = P.bounds
-
-                    lines += f"""
-  {dataset["uuid"]}:
-    description: {label}
-    driver: csv
-    args:
-      urlpath: {urlpath}
-      csv_kwargs:
-        parse_dates: ['time']
-    metadata:
-      variables: {Vars}
-      standard_names: {standard_names}
-      platform_category: {dataset['data']['platform_category']}
-      geospatial_lon_min: {geospatial_lon_min}
-      geospatial_lat_min: {geospatial_lat_min}
-      geospatial_lon_max: {geospatial_lon_max}
-      geospatial_lat_max: {geospatial_lat_max}
-      id: {dataset["data"]["packrat_source_id"]}
-      time_coverage_start: {dataset['start_date_time']}
-      time_coverage_end: {dataset['end_date_time']}
-
-"""
+                    if self.filetype == "csv":
+                        urlpath = dataset["source"]["files"]["data.csv.gz"]["url"]
+                        file_intake = intake.open_csv(
+                            urlpath, csv_kwargs=dict(parse_dates=["time"])
+                        )
+                    elif self.filetype == "netcdf":
+                        key = [
+                            key
+                            for key in dataset["source"]["files"].keys()
+                            if ".nc" in key
+                        ][0]
+                        urlpath = dataset["source"]["files"][key]["url"]
+                        file_intake = intake.open_netcdf(
+                            urlpath
+                        )  # , xarray_kwargs=dict(parse_dates=['time']))
+                    # to get all metadata
+                    # source = intake.open_textfiles(meta_url, decoder=json.loads)
+                    # source.metadata = source.read()[0]
+                    meta_url = dataset["source"]["files"]["meta.json"]["url"]
+                    meta_url = meta_url.replace(" ", "%20")
+                    attributes = pd.read_json(meta_url)["attributes"]
+                    file_intake.description = attributes["summary"]
+                    metadata = {
+                        "urlpath": urlpath,
+                        "meta_url": meta_url,
+                        "platform_category": attributes["platform_category"],
+                        "geospatial_lon_min": attributes["geospatial_lon_min"],
+                        "geospatial_lat_min": attributes["geospatial_lat_min"],
+                        "geospatial_lon_max": attributes["geospatial_lon_max"],
+                        "geospatial_lat_max": attributes["geospatial_lat_max"],
+                        "source_id": attributes["packrat_source_id"],
+                        "packrat_uuid": attributes["packrat_uuid"],
+                        "time_coverage_start": attributes["time_coverage_start"],
+                        "time_coverage_end": attributes["time_coverage_end"],
+                    }
+                    file_intake.metadata = metadata
+                    file_intake.name = attributes["packrat_uuid"]
+                    lines += file_intake.yaml().strip("sources:")
 
             elif self.axds_type == "layer_group":
                 lines = """
@@ -646,115 +652,78 @@ sources:
 
         if self.axds_type == "platform2":
 
-            # .to_dask().compute() seems faster than read but
-            # should do more comparisons
-            data = self.catalog[dataset_id].to_dask().compute()
-            data = data.set_index("time")
-            data = data[self.kw["min_time"] : self.kw["max_time"]]
+            if self.filetype == "csv":
+                # .to_dask().compute() seems faster than read but
+                # should do more comparisons
+                data = self.catalog[dataset_id].to_dask().compute()
+                data = data.set_index("time")
+                data = data[self.kw["min_time"] : self.kw["max_time"]]
+
+                units = []
+                for col in data.columns:
+                    try:
+                        units.append(variables.loc[col]["attributes"]["units"])
+                    except:
+                        units.append("")
+
+                # add units to 2nd header row
+                data.columns = pd.MultiIndex.from_tuples(zip(data.columns, units))
+
+            elif self.filetype == "netcdf":
+                # this downloads the http-served file to cache I think
+                download_url = self.catalog[dataset_id].urlpath
+                infile = fsspec.open(f"simplecache::{download_url}")
+                data = xr.open_dataset(infile.open())  # , engine='h5netcdf')
+                # we need 'time' as a dimension for the subsequent line to work
+                dim = [
+                    dim for dim, size in data.dims.items() if size == data.cf["T"].size
+                ]
+                if len(dim) > 0:
+                    data = data.swap_dims({dim[0]: data.cf["T"].name})
+                # .swap_dims({"profile": "time"})
+                # filter by time
+                data = data.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
+
+            # read units from metadata variable meta_url for columns
+            variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
 
         elif self.axds_type == "layer_group":
-
             if self.catalog[dataset_id].urlpath is not None:
                 try:
                     data = self.catalog[dataset_id].to_dask()
-                    try:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("standard_name" in data[coord].attrs)
-                            and (data[coord].attrs["standard_name"] == "time")
-                        ]
-                        assert len(timekey) > 0
-                    except:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("time" in coord) or (coord == "t")
-                        ]
-                        assert len(timekey) > 0
-                    timekey = timekey[0]
-                    slicedict = {
-                        timekey: slice(self.kw["min_time"], self.kw["max_time"])
-                    }
-                    data = data.sel(slicedict)
-                except KeyError as e:
-                    #                     logger.exception(e)
-                    #                     logger.warning(f'data was not read in for dataset_id {dataset_id} with url path {self.catalog[dataset_id].urlpath} and description {self.catalog[dataset_id].description}.')
 
+                    # preprocess to avoid a sometimes-problem:
                     # try to fix key error assuming it is the following problem:
                     # KeyError: "cannot represent labeled-based slice indexer for dimension 'time' with a slice over integer positions; the index is unsorted or non-unique"
-                    try:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("standard_name" in data[coord].attrs)
-                            and (data[coord].attrs["standard_name"] == "time")
-                        ]
-                        assert len(timekey) > 0
-                    except:
-                        timekey = [
-                            coord
-                            for coord in data.coords
-                            if ("time" in coord) or (coord == "t")
-                        ]
-                        assert len(timekey) > 0
-                    timekey = timekey[0]
+                    _, index = np.unique(data.cf["T"], return_index=True)
+                    data = data.cf.isel(T=index)
 
-                    slicedict = {
-                        timekey: slice(self.kw["min_time"], self.kw["max_time"])
-                    }
-                    _, index = np.unique(data[timekey], return_index=True)
-                    data = data.isel({timekey: index}).sel(slicedict)
+                    # filter by time
+                    data = data.cf.sel(
+                        T=slice(self.kw["min_time"], self.kw["max_time"])
+                    )
+
                 except Exception as e:
                     logger.exception(e)
                     logger.warning(
                         f"data was not read in for dataset_id {dataset_id} with url path {self.catalog[dataset_id].urlpath} and description {self.catalog[dataset_id].description}."
                     )
                     data = None
-            else:
-                data = None
 
-        return (dataset_id, data)
-
-    #         return (dataset_id, self.catalog[dataset_id].read())
+        # return (dataset_id, data)
+        return data
 
     # @property
-    def data(self):
-        """Read in data for all dataset_ids.
+    def data(self, dataset_ids=None):
+        """Read in data for some or all dataset_ids.
 
-        Returns
-        -------
-        A dictionary with keys of the dataset_ids and values the data of type:
-        If `self.axds_type=='platform2'`: a pandas DataFrame
-        If `self.axds_type=='layer_group'`: an xarray Dataset
+        Once data is read in for a dataset_ids, it is remembered.
 
-        Notes
-        -----
-        This is either done in parallel with the `multiprocessing` library or
-        in serial.
+        See full documentation in `utils.load_data()`.
         """
 
-        if not hasattr(self, "_data"):
-
-            if self.parallel:
-                num_cores = multiprocessing.cpu_count()
-                downloads = Parallel(n_jobs=num_cores)(
-                    delayed(self.data_by_dataset)(dataset_id)
-                    for dataset_id in self.dataset_ids
-                )
-            else:
-                downloads = []
-                for dataset_id in self.dataset_ids:
-                    downloads.append(self.data_by_dataset(dataset_id))
-
-            #             if downloads is not None:
-            dds = {dataset_id: dd for (dataset_id, dd) in downloads}
-            #             else:
-            #                 dds = None
-
-            self._data = dds
-
-        return self._data
+        output = odg.utils.load_data(self, dataset_ids)
+        return output
 
     def save(self):
         """Save datasets locally."""

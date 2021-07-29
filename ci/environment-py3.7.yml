@@ -4,26 +4,31 @@ channels:
 dependencies:
   - python=3.7
   ############## These will have to be adjusted to your specific project
+  - aiohttp
+  - cf_xarray>=0.6
+  - dask
+  - erddapy
+  - flake8
+  - h5netcdf
+  - intake
+  - intake-xarray
+  - ioos_qc
+  - ipython
+  - isort
+  - joblib
   - jupyter
   - jupyterlab
-  - numpy
-  - scipy
-  - dask
-  - netcdf4
   - matplotlib
-  - joblib
-  - shapely
-  - intake
+  - netcdf4
+  - numpy
   - pandas
-  - xarray
-  - requests
-  - flake8
-  - isort
-  - erddapy
+  - pint
+  - pint-pandas
+  - pint-xarray
   - pytest
-  - ipython
-  - aiohttp
-  - intake-xarray
+  - requests
+  - scipy
+  - xarray
   ##############
   - pytest
   - pip:
