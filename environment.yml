@@ -20,7 +20,6 @@ dependencies:
   - jupyter
   - jupyterlab
   - matplotlib
-  - ocean_data_gateway
   - pandas
   - pint
   - pint-pandas
