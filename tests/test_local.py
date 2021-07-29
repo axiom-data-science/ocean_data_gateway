@@ -4,13 +4,16 @@ Test reading local files.
 
 
 import numpy as np
-import ocean_data_gateway as odg
+
 from make_test_files import make_local_netcdf
+
+import ocean_data_gateway as odg
+
 
 # make sure local netcdf test file exists
 make_local_netcdf()
 fname = "test_local.nc"
-fullname = f'tests/{fname}'
+fullname = f"tests/{fname}"
 
 
 def test_class_init():

@@ -3,8 +3,9 @@ Make local test netcdf file
 """
 
 import os
-import xarray as xr
+
 import numpy as np
+import xarray as xr
 
 
 def make_local_netcdf():

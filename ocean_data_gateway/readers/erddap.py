@@ -74,7 +74,7 @@ class ErddapReader:
         self.parallel = parallel
 
         # hard wire this for now
-        filetype = 'netcdf'
+        filetype = "netcdf"
 
         # either select a known server or input protocol and server string
         if known_server == "ioos":

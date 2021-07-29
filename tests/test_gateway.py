@@ -1,17 +1,21 @@
+import numpy as np  # noqa: E402
+import xarray as xr  # noqa: E402
+
 from make_test_files import make_local_netcdf
+
 import ocean_data_gateway as odg
+
+
 from cf_xarray.units import units  # isort:skip
 import pint_xarray  # isort:skip
 
 pint_xarray.unit_registry = units  # isort:skip
 
-import numpy as np  # noqa: E402
-import xarray as xr  # noqa: E402
 
 # make sure local netcdf test file exists
 make_local_netcdf()
 fname = "test_local.nc"
-fullname = f'tests/{fname}'
+fullname = f"tests/{fname}"
 
 
 def test_units():
@@ -25,6 +29,8 @@ def test_qc():
     """Test qc can return something with local test file."""
 
     filenames = fullname
-    data = odg.Gateway(approach='stations', readers=odg.local, local={'filenames': filenames})
+    data = odg.Gateway(
+        approach="stations", readers=odg.local, local={"filenames": filenames}
+    )
     data.dataset_ids
-    assert (data.qc()[0][fname]['temperature_qc'] == np.ones(10)).all()
+    assert (data.qc()[0][fname]["temperature_qc"] == np.ones(10)).all()

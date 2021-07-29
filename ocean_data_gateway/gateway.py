@@ -291,7 +291,7 @@ class Gateway(object):
         return self._meta
 
     @property
-    def data(self):#, dataset_ids=dataset_ids):
+    def data(self):  # , dataset_ids=dataset_ids):
         """Return the data, given metadata.
 
         Notes

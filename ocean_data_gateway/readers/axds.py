@@ -673,11 +673,13 @@ sources:
                 # this downloads the http-served file to cache I think
                 download_url = self.catalog[dataset_id].urlpath
                 infile = fsspec.open(f"simplecache::{download_url}")
-                data = xr.open_dataset(infile.open())#, engine='h5netcdf')
+                data = xr.open_dataset(infile.open())  # , engine='h5netcdf')
                 # we need 'time' as a dimension for the subsequent line to work
-                dim = [dim for dim, size in data.dims.items() if size == data.cf['T'].size]
+                dim = [
+                    dim for dim, size in data.dims.items() if size == data.cf["T"].size
+                ]
                 if len(dim) > 0:
-                    data = data.swap_dims({dim[0]: data.cf['T'].name})
+                    data = data.swap_dims({dim[0]: data.cf["T"].name})
                 # .swap_dims({"profile": "time"})
                 # filter by time
                 data = data.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))

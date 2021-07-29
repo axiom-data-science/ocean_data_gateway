@@ -7,12 +7,14 @@ match_var()
 # import ocean_data_gateway as odg
 # import re
 import multiprocessing
-from joblib import Parallel, delayed
+
 import pandas as pd
+
+from joblib import Parallel, delayed
 
 
 def resample_like(ds_resample, ds_resample_to):
-    '''Resample input dataset in time like other dataset.
+    """Resample input dataset in time like other dataset.
 
     Parameters
     ----------
@@ -28,11 +30,12 @@ def resample_like(ds_resample, ds_resample_to):
     TODO: Does this work for upsampling as well as downsampling?
     TODO: Should the index be taken from ds_resample_to and example matched by
     reindexing?
-    '''
+    """
 
     # Find delta T for model (lower temporal resolution)
-    dt = (pd.Timestamp(ds_resample_to.cf['T'][1].values)
-          - pd.Timestamp(ds_resample_to.cf['T'][0].values))
+    dt = pd.Timestamp(ds_resample_to.cf["T"][1].values) - pd.Timestamp(
+        ds_resample_to.cf["T"][0].values
+    )
     dt = dt.total_seconds() / 3600  # delta t in hours
 
     # resample higher res data set to dt
@@ -74,10 +77,10 @@ def load_data(self, dataset_ids=None):
     if not hasattr(self, "_data"):
         self._data = {}
 
-    if dataset_ids == 'printkeys':
+    if dataset_ids == "printkeys":
         return self._data.keys()
 
-    elif dataset_ids == 'printall':
+    elif dataset_ids == "printall":
         return self._data
 
     # for a single dataset_ids, just return that Dataset
@@ -108,8 +111,7 @@ def load_data(self, dataset_ids=None):
         if self.parallel:
             num_cores = multiprocessing.cpu_count()
             downloads = Parallel(n_jobs=num_cores)(
-                delayed(self.data_by_dataset)(dataid)
-                for dataid in dataset_ids_to_use
+                delayed(self.data_by_dataset)(dataid) for dataid in dataset_ids_to_use
             )
             for dataid, download in zip(dataset_ids_to_use, downloads):
                 self._data[dataid] = download
