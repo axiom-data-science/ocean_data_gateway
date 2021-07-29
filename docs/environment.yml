@@ -21,6 +21,7 @@ dependencies:
    - matplotlib
    - netcdf4
    - numpy
+   - ocean_data_gateway
    - pandas
    - pint
    - pint-pandas
