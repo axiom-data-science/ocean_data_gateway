@@ -32,7 +32,8 @@ dependencies:
    - xarray
    # These are needed for the docs themselves
    - numpydoc
-   - sphinx
+   # https://stackoverflow.com/questions/68642540/nbsphinx-causes-build-to-fail-when-building-jupyter-notebooks
+   - sphinx==4.0.2
    - sphinx_rtd_theme
    - ipython
    - nbconvert
