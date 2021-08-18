@@ -33,4 +33,5 @@ def test_qc():
         approach="stations", readers=odg.local, local={"filenames": filenames}
     )
     data.dataset_ids
-    assert (data.qc()[0][fname]["temperature_qc"] == np.ones(10)).all()
+    data[fname]
+    assert (data.qc()[fname]["temperature_qc"] == np.ones(10)).all()

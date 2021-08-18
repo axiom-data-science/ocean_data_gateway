@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import re
 
-import cf_xarray
+import cf_xarray  # noqa: F401
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -15,6 +15,7 @@ from erddapy import ERDDAP
 from joblib import Parallel, delayed
 
 import ocean_data_gateway as odg
+from ocean_data_gateway import Reader
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 reader = "erddap"
 
 
-class ErddapReader:
+class ErddapReader(Reader):
     """
     This class searches ERDDAP servers. There are 2 known_servers but
     others can be input too.
@@ -52,7 +53,8 @@ class ErddapReader:
         reader is defined as "ErddapReader".
     """
 
-    def __init__(self, known_server="ioos", protocol=None, server=None, parallel=True):
+    def __init__(self, known_server="ioos", protocol=None, server=None,
+                 parallel=True):
         """
         Parameters
         ----------
@@ -126,6 +128,13 @@ class ErddapReader:
         self.name = f"erddap_{known_server}"
 
         self.reader = "ErddapReader"
+        self.store = dict()
+
+    def __getitem__(self, key):
+        returned_data = self.data_by_dataset(key)
+        # returned_data = self._return_data(key)
+        self.__setitem__(key, returned_data)
+        return returned_data
 
     def find_dataset_id_from_station(self, station):
         """Find dataset_id from station name.
@@ -256,6 +265,9 @@ class ErddapReader:
                     for station in self._stations:
                         dataset_ids.append(self.find_dataset_id_from_station(station))
 
+                # remove None from list
+                dataset_ids = [i for i in dataset_ids if i]
+
                 # In this case return all dataset_ids so they match 1-1 with
                 # the input station list.
                 self._dataset_ids = dataset_ids
@@ -301,7 +313,7 @@ class ErddapReader:
                 item = int(item)
             items.append(item)
 
-        ## include download link ##
+        # include download link ##
         self.e.dataset_id = dataset_id
         if self.e.protocol == "tabledap":
             # set the same time restraints as before
@@ -496,14 +508,15 @@ class ErddapReader:
             elif self.e.protocol == "griddap":
 
                 try:
+                    # this makes it read in the whole file which might be large
                     self.e.dataset_id = dataset_id
-                    dd = self.e.to_xarray(chunks="auto").sel(
-                        time=slice(self.kw["min_time"], self.kw["max_time"])
-                    )
-
-                    # dd = xr.open_dataset(download_url, chunks="auto").sel(
+                    # dd = self.e.to_xarray(chunks="auto").sel(
                     #     time=slice(self.kw["min_time"], self.kw["max_time"])
                     # )
+                    download_url = self.e.get_download_url(response="opendap")
+                    dd = xr.open_dataset(download_url, chunks="auto").sel(
+                        time=slice(self.kw["min_time"], self.kw["max_time"])
+                    )
 
                     if ("min_lat" in self.kw) and ("max_lat" in self.kw):
                         dd = dd.sel(

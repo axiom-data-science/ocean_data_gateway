@@ -4,13 +4,14 @@ Utilities to help with running the other code.
 match_var()
 """
 
-# import ocean_data_gateway as odg
-# import re
 import multiprocessing
 
 import pandas as pd
 
 from joblib import Parallel, delayed
+
+# https://stackoverflow.com/questions/3387691/how-to-perfectly-override-a-dict
+from collections.abc import MutableMapping
 
 
 def resample_like(ds_resample, ds_resample_to):
@@ -121,3 +122,33 @@ def load_data(self, dataset_ids=None):
                 self._data[dataid] = self.data_by_dataset(dataid)
 
     return self._data
+
+
+# dict-like structure for readers to inherit
+class Reader(MutableMapping):
+
+    def __init__(self):
+        self.store = dict()
+        # self.update(dict(*args, **kwargs))  # use the free update to set keys
+
+    def __getitem__(self, key):
+        # this is overwritten by the same method in each reader
+        return key
+
+    def __setitem__(self, key, value):
+        self.store[key] = value
+
+    def __delitem__(self, key):
+        del self.store[key]
+
+    def __iter__(self):
+        return iter(self.store)
+
+    def __len__(self):
+        return len(self.store)
+
+    def keys(self):
+        return self.store.keys()
+
+    def values(self):
+        return self.store.values()

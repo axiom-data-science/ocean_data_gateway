@@ -4,7 +4,6 @@ Reader for Axiom databases.
 
 import hashlib
 import logging
-import multiprocessing
 import os
 import re
 
@@ -15,9 +14,8 @@ import pandas as pd
 import requests
 import xarray as xr
 
-from joblib import Parallel, delayed
-
 import ocean_data_gateway as odg
+from ocean_data_gateway import Reader
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +25,7 @@ logger = logging.getLogger(__name__)
 reader = "axds"
 
 
-class AxdsReader:
+class AxdsReader(Reader):
     """
     This class searches Axiom databases for types `platforms2`, which
     are like gliders, and `layer_group`, which are like grids and models.
@@ -116,6 +114,13 @@ class AxdsReader:
         self.reader = "AxdsReader"
 
         self.filetype = filetype
+        self.store = dict()
+
+    def __getitem__(self, key):
+        returned_data = self.data_by_dataset(key)
+        # returned_data = self._return_data(key)
+        self.__setitem__(key, returned_data)
+        return returned_data
 
     def url_query(self, query):
         """url modification to add query field.
@@ -527,22 +532,22 @@ sources:
                         ).json()[0]
 
                         if "OPENDAP" in search_results_lg["data"]["access_methods"]:
-                            urlpaths.append(
-                                search_results_lg["source"]["layers"][0][
-                                    "thredds_opendap_url"
-                                ][:-5]
-                            )
+                            url = search_results_lg["source"]["layers"][0]["thredds_opendap_url"]
+                            if '.html' in url:
+                                url = url.replace('.html', '')
+                            urlpaths.append(url)
                         else:
                             urlpaths.append("")
                             logger.warning(
                                 f"no opendap url for module: module uuid {dataset_id}, layer_group uuid {layer_group_uuid}"
                             )
-                            # DO NOT STORE ITEM IN CATALOG IF NOT OPENDAP ACCESSIBLE
                             continue
 
                     # there may be different urls for different layer_groups
                     # in which case associate the layer_group uuid with the dataset
                     # since the module uuid wouldn't be unique
+                    # if there were no urlpaths for any of the layer_groups,
+                    # urlpaths is like ['', '', '', '', '', '', '', '']
                     if len(set(urlpaths)) > 1:
                         logger.warning(
                             f"there are multiple urls for module: module uuid {dataset_id}. urls: {set(urlpaths)}"
@@ -553,6 +558,14 @@ sources:
                             lines += self.write_catalog_layer_group_entry(
                                 dataset, layer_group_uuid, urlpath, layer_groups
                             )
+
+                    # check for when no urlpaths, don't save entry
+                    # if not opendap accessible
+                    elif set(urlpaths) == {''}:
+                        logger.warning(
+                            f"no opendap url for module: module uuid {dataset_id} for any of its layer_groups. Do not include entry in catalog."
+                        )
+                        continue
 
                     else:
                         urlpath = list(set(urlpaths))[0]
@@ -653,6 +666,8 @@ sources:
         if self.axds_type == "platform2":
 
             if self.filetype == "csv":
+                # read units from metadata variable meta_url for columns
+                variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
                 # .to_dask().compute() seems faster than read but
                 # should do more comparisons
                 data = self.catalog[dataset_id].to_dask().compute()
@@ -684,9 +699,6 @@ sources:
                 # filter by time
                 data = data.cf.sel(T=slice(self.kw["min_time"], self.kw["max_time"]))
 
-            # read units from metadata variable meta_url for columns
-            variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
-
         elif self.axds_type == "layer_group":
             if self.catalog[dataset_id].urlpath is not None:
                 try:
@@ -695,13 +707,18 @@ sources:
                     # preprocess to avoid a sometimes-problem:
                     # try to fix key error assuming it is the following problem:
                     # KeyError: "cannot represent labeled-based slice indexer for dimension 'time' with a slice over integer positions; the index is unsorted or non-unique"
-                    _, index = np.unique(data.cf["T"], return_index=True)
-                    data = data.cf.isel(T=index)
+                    try:
+                        _, index = np.unique(data.cf["T"], return_index=True)
+                        data = data.cf.isel(T=index)
 
-                    # filter by time
-                    data = data.cf.sel(
-                        T=slice(self.kw["min_time"], self.kw["max_time"])
-                    )
+                        # filter by time
+                        data = data.cf.sel(
+                            T=slice(self.kw["min_time"], self.kw["max_time"])
+                        )
+                    except KeyError as e:
+                        logger.exception(e)
+                        logger.warning('Could not subset in time.')
+                        pass
 
                 except Exception as e:
                     logger.exception(e)
