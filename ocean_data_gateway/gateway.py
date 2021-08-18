@@ -16,12 +16,10 @@ from ioos_qc.config import QcConfig  # noqa: E402
 
 import ocean_data_gateway as odg  # noqa: E402
 
-
-# MAYBE SHOULD BE ABLE TO INITIALIZE THE CLASS WITH ONLY METADATA OR DATASET NAMES?
-# to skip looking for the datasets
+from ocean_data_gateway import Reader  # noqa: E402
 
 
-class Gateway(object):
+class Gateway(Reader):
     """
     Wraps together the individual readers in order to have a single way to
     search.
@@ -36,7 +34,7 @@ class Gateway(object):
         Keyword arguments that contain specific arguments for the readers.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Parameters
         ----------
@@ -114,6 +112,30 @@ class Gateway(object):
 
         self.kwargs = kwargs
         self.sources
+
+        self.store = dict()
+
+    def __getitem__(self, key):
+        """Redefinition of dict-like behavior.
+
+        This enables user to use syntax `reader[dataset_id]` to read in and
+        save dataset into the object.
+
+        Parameters
+        ----------
+        key: str
+            dataset_id for a dataset that is available in the search/reader
+            object.
+
+        Returns
+        -------
+        xarray Dataset of the data associated with key
+        """
+
+        returned_data = self.data_by_dataset(key)
+        # returned_data = self._return_data(key)
+        self.__setitem__(key, returned_data)
+        return returned_data
 
     @property
     def sources(self):
@@ -248,8 +270,8 @@ class Gateway(object):
             dataset_ids = []
             for source in self.sources:
 
-                # dataset_ids.extend(source.dataset_ids)
-                dataset_ids.append(source.dataset_ids)
+                dataset_ids.extend(source.dataset_ids)
+                # dataset_ids.append(source.dataset_ids)
 
             self._dataset_ids = dataset_ids
 
@@ -284,15 +306,37 @@ class Gateway(object):
             for source in self.sources:
                 meta.append(source.meta)
 
-            self._meta = meta
-            # # merge metadata into one DataFrame
-            # self._meta = pd.concat(meta, axis=1)
+            # self._meta = meta
+            # merge metadata into one DataFrame
+            self._meta = pd.concat(meta, axis=1)
 
         return self._meta
 
+    def data_by_dataset(self, dataset_id):
+        """Return the data for a single dataset_id.
+
+        All available sources are checked (in order) for the dataset. Once a
+        dataset matching dataset_id is found, it is returned.
+
+        Returns
+        -------
+        An xarray Dataset
+
+        Notes
+        -----
+        Data is read into memory.
+        """
+
+        for source in self.sources:
+            if dataset_id in source.dataset_ids:
+                found_data = source[dataset_id]
+                return found_data
+
     @property
-    def data(self):  # , dataset_ids=dataset_ids):
+    def data(self, dataset_ids=dataset_ids):
         """Return the data, given metadata.
+
+        THIS IS NOW OUTDATED.
 
         Notes
         -----
@@ -308,7 +352,7 @@ class Gateway(object):
 
                 # import pdb; pdb.set_trace()
                 data.append(source.data)
-                # data.append(source.data[dataset_ids])
+                # data.append(source[dataset_ids])
                 # data.append(source.data(dataset_ids=dataset_ids))
 
             # import pdb; pdb.set_trace()
@@ -320,7 +364,7 @@ class Gateway(object):
 
         return self._data
 
-    def qc(self, verbose=False, dataset_ids=None):
+    def qc(self, dataset_ids=None, verbose=False):
         """Light quality check on data.
 
         This runs one IOOS QARTOD on data as a first order quality check.
@@ -333,12 +377,11 @@ class Gateway(object):
 
         Parameters
         ----------
+        dataset_ids: str, list, optional
+            Read in data for dataset_ids specifically. If none are
+            provided, data will be read in for all `self.keys()`.
         verbose: boolean, optional
             If True, report summary statistics on QC flag distribution in datasets.
-        dataset_ids: list of lists, optional
-            Read in data for dataset_ids specifically. They need to be nested in
-            lists that match the order of the readers. If none are
-            provided, data will be read in for all `self.dataset_ids`.
 
         Returns
         -------
@@ -353,111 +396,107 @@ class Gateway(object):
         """
 
         if dataset_ids is None:
-            data_ids = self.dataset_ids
+            data_ids = (
+                self.keys()
+            )  # Only return already read-in dataset_ids  # self.dataset_ids
         else:
             data_ids = dataset_ids
+            if not isinstance(data_ids, list):
+                data_ids = [data_ids]
 
-        data_out = []
-        for dataset_ids_reader, data in zip(data_ids, self.data):
-            data_out_temp = {}  # add level
-            for dataset_id in dataset_ids_reader:
-                # access the Dataset
-                dd = data(dataset_ids=dataset_id)
+        data_out = {}
+        for data_id in data_ids:
+            # access the Dataset
+            dd = self[data_id]
 
-                # which custom variable names are in dataset
-                varnames = [
-                    (cf_xarray.accessor._get_custom_criteria(dd, var), var)
-                    for var in odg.var_def.keys()
-                    if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
+            # which custom variable names are in dataset
+            varnames = [
+                (cf_xarray.accessor._get_custom_criteria(dd, var), var)
+                for var in odg.var_def.keys()
+                if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
+            ]
+            assert len(varnames) > 0, "no custom names matched in Dataset."
+            # dd_varnames are the variable names in the Dataset dd
+            # cf_varnames are the custom names we can use to refer to the
+            # variables through cf-xarray
+            dd_varnames, cf_varnames = zip(*varnames)
+            dd_varnames = sum(dd_varnames, [])
+            assert len(dd_varnames) == len(
+                cf_varnames
+            ), "looks like multiple variables might have been identified for a custom variable name"
+
+            # subset to just the boem or requested variables for each df or ds
+            if isinstance(dd, pd.DataFrame):
+                dd2 = dd[list(varnames.values())]
+            elif isinstance(dd, xr.Dataset):
+                dd2 = dd.cf[cf_varnames]
+                # dd2 = dd[varnames]  # equivalent
+
+            # Preprocess to change salinity units away from 1e-3
+            if isinstance(dd, pd.DataFrame):
+                # this replaces units in the 2nd column level of 1e-3 with psu
+                new_levs = [
+                    "psu" if col == "1e-3" else col for col in dd2.columns.levels[1]
                 ]
-                assert len(varnames) > 0, "no custom names matched in Dataset."
-                # dd_varnames are the variable names in the Dataset dd
-                # cf_varnames are the custom names we can use to refer to the
-                # variables through cf-xarray
-                dd_varnames, cf_varnames = zip(*varnames)
-                dd_varnames = sum(dd_varnames, [])
-                assert len(dd_varnames) == len(
-                    cf_varnames
-                ), "looks like multiple variables might have been identified for a custom variable name"
+                dd2.columns.set_levels(new_levs, level=1, inplace=True)
+            elif isinstance(dd, xr.Dataset):
+                for Var in dd2.data_vars:
+                    if "units" in dd2[Var].attrs and dd2[Var].attrs["units"] == "1e-3":
+                        dd2[Var].attrs["units"] = "psu"
+            # run pint quantify on each data structure
+            dd2 = dd2.pint.quantify()
+            # dd2 = dd2.pint.quantify(level=-1)
 
-                # subset to just the boem or requested variables for each df or ds
-                if isinstance(dd, pd.DataFrame):
-                    dd2 = dd[list(varnames.values())]
-                elif isinstance(dd, xr.Dataset):
-                    dd2 = dd.cf[cf_varnames]
-                    # dd2 = dd[varnames]  # equivalent
+            # go through each variable by name to make sure in correct units
+            # have to do this in separate loop so that can dequantify afterward
+            if isinstance(dd, pd.DataFrame):
+                print("NOT IMPLEMENTED FOR DATAFRAME YET")
+            elif isinstance(dd, xr.Dataset):
+                # form of "temp": "degree_Celsius"
+                units_dict = {
+                    dd_varname: odg.var_def[cf_varname]["units"]
+                    for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
+                }
+                # convert to conventional units
+                dd2 = dd2.pint.to(units_dict)
 
-                # Preprocess to change salinity units away from 1e-3
-                if isinstance(dd, pd.DataFrame):
-                    # this replaces units in the 2nd column level of 1e-3 with psu
-                    new_levs = [
-                        "psu" if col == "1e-3" else col for col in dd2.columns.levels[1]
-                    ]
-                    dd2.columns.set_levels(new_levs, level=1, inplace=True)
-                elif isinstance(dd, xr.Dataset):
-                    for Var in dd2.data_vars:
-                        if (
-                            "units" in dd2[Var].attrs
-                            and dd2[Var].attrs["units"] == "1e-3"
-                        ):
-                            dd2[Var].attrs["units"] = "psu"
-                # run pint quantify on each data structure
-                dd2 = dd2.pint.quantify()
-                # dd2 = dd2.pint.quantify(level=-1)
+            dd2 = dd2.pint.dequantify()
 
-                # go through each variable by name to make sure in correct units
-                # have to do this in separate loop so that can dequantify afterward
-                if isinstance(dd, pd.DataFrame):
-                    print("NOT IMPLEMENTED FOR DATAFRAME YET")
-                elif isinstance(dd, xr.Dataset):
-                    # form of "temp": "degree_Celsius"
-                    units_dict = {
-                        dd_varname: odg.var_def[cf_varname]["units"]
-                        for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
+            # now loop for QARTOD on each variable
+            for dd_varname, cf_varname in zip(dd_varnames, cf_varnames):
+                # run QARTOD
+                qc_config = {
+                    "qartod": {
+                        "gross_range_test": {
+                            "fail_span": odg.var_def[cf_varname]["fail_span"],
+                            "suspect_span": odg.var_def[cf_varname]["suspect_span"],
+                        },
                     }
-                    # convert to conventional units
-                    dd2 = dd2.pint.to(units_dict)
+                }
+                qc = QcConfig(qc_config)
+                qc_results = qc.run(inp=dd2[dd_varname])
+                # qc_results = qc.run(inp=dd2.cf[cf_varname])  # this isn't working for some reason
 
-                dd2 = dd2.pint.dequantify()
+                # put flags into dataset
+                new_qc_var = f"{dd_varname}_qc"
+                if isinstance(dd, pd.DataFrame):
+                    dd2[new_qc_var] = qc_results["qartod"]["gross_range_test"]
+                elif isinstance(dd, xr.Dataset):
+                    new_data = qc_results["qartod"]["gross_range_test"]
+                    dims = dd2[dd_varname].dims
+                    dd2[f"{dd_varname}_qc"] = (dims, new_data)
 
-                # now loop for QARTOD on each variable
-                for dd_varname, cf_varname in zip(dd_varnames, cf_varnames):
-                    # run QARTOD
-                    qc_config = {
-                        "qartod": {
-                            "gross_range_test": {
-                                "fail_span": odg.var_def[cf_varname]["fail_span"],
-                                "suspect_span": odg.var_def[cf_varname]["suspect_span"],
-                            },
-                        }
-                    }
-                    qc = QcConfig(qc_config)
-                    qc_results = qc.run(inp=dd2[dd_varname])
-                    # qc_results = qc.run(inp=dd2.cf[cf_varname])  # this isn't working for some reason
-
-                    # put flags into dataset
-                    new_qc_var = f"{dd_varname}_qc"
-                    if isinstance(dd, pd.DataFrame):
-                        dd2[new_qc_var] = qc_results["qartod"]["gross_range_test"]
-                    elif isinstance(dd, xr.Dataset):
-                        new_data = qc_results["qartod"]["gross_range_test"]
-                        dims = dd2[dd_varname].dims
-                        dd2[f"{dd_varname}_qc"] = (dims, new_data)
-
-                # data[dataset_id] = dd2
-                data_out_temp[dataset_id] = dd2
-            data_out.append(data_out_temp)
+            data_out[data_id] = dd2
 
         if verbose:
-            for data in data_out:
-                for dataset_id, dd in data.items():
-                    print(dataset_id)
-                    qckeys = dd2[[var for var in dd.data_vars if "_qc" in var]]
-                    for qckey in qckeys:
-                        print(qckey)
-                        for flag, desc in odg.qcdefs.items():
-                            print(
-                                f"Flag == {flag} ({desc}): {int((dd[qckey] == int(flag)).sum())}"
-                            )
+            for dataset_id, dd in data_out.items():
+                print(dataset_id)
+                qckeys = dd2[[var for var in dd.data_vars if "_qc" in var]]
+                for qckey in qckeys:
+                    print(qckey)
+                    for flag, desc in odg.qcdefs.items():
+                        print(
+                            f"Flag == {flag} ({desc}): {int((dd[qckey] == int(flag)).sum())}"
+                        )
 
         return data_out

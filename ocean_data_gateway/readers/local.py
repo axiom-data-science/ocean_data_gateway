@@ -4,15 +4,14 @@ Reader for local files.
 
 import hashlib
 import logging
-import multiprocessing
 import os
 
 import intake
 import pandas as pd
 
-from joblib import Parallel, delayed
-
 import ocean_data_gateway as odg
+
+from ocean_data_gateway import Reader
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 reader = "local"
 
 
-class LocalReader:
+class LocalReader(Reader):
     """
     This class searches local files.
 
@@ -102,6 +101,28 @@ class LocalReader:
         self.name = "local"
 
         self.reader = "LocalReader"
+        self.store = dict()
+
+    def __getitem__(self, key):
+        """Redefinition of dict-like behavior.
+
+        This enables user to use syntax `reader[dataset_id]` to read in and
+        save dataset into the object.
+
+        Parameters
+        ----------
+        key: str
+            dataset_id for a dataset that is available in the search/reader
+            object.
+
+        Returns
+        -------
+        xarray Dataset of the data associated with key
+        """
+
+        returned_data = self.data_by_dataset(key)
+        self.__setitem__(key, returned_data)
+        return returned_data
 
     def write_catalog(self):
         """Write catalog file."""
