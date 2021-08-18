@@ -15,9 +15,10 @@ from pathlib import Path  # noqa: E402
 
 import requests  # noqa: E402
 
-from .gateway import Gateway  # noqa: E402, F401
-from .readers import axds, erddap, local  # noqa: E402
-from .utils import Reader, load_data, resample_like  # noqa: E402, F401
+
+from .utils import Reader, load_data, resample_like  # isort:skip  # noqa: E402, F401
+from .gateway import Gateway  # isort:skip  # noqa: E402, F401
+from .readers import axds, erddap, local  # isort:skip  # noqa: E402
 
 
 try:
