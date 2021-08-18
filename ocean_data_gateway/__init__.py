@@ -15,9 +15,9 @@ from pathlib import Path  # noqa: E402
 
 import requests  # noqa: E402
 
-from .utils import load_data, resample_like, Reader  # noqa: E402, F401
 from .gateway import Gateway  # noqa: E402, F401
 from .readers import axds, erddap, local  # noqa: E402
+from .utils import Reader, load_data, resample_like  # noqa: E402, F401
 
 
 try:

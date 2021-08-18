@@ -15,6 +15,7 @@ import requests
 import xarray as xr
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import Reader
 
 
@@ -117,6 +118,22 @@ class AxdsReader(Reader):
         self.store = dict()
 
     def __getitem__(self, key):
+        """Redefinition of dict-like behavior.
+
+        This enables user to use syntax `reader[dataset_id]` to read in and
+        save dataset into the object.
+
+        Parameters
+        ----------
+        key: str
+            dataset_id for a dataset that is available in the search/reader
+            object.
+
+        Returns
+        -------
+        xarray Dataset of the data associated with key
+        """
+
         returned_data = self.data_by_dataset(key)
         # returned_data = self._return_data(key)
         self.__setitem__(key, returned_data)
@@ -532,9 +549,11 @@ sources:
                         ).json()[0]
 
                         if "OPENDAP" in search_results_lg["data"]["access_methods"]:
-                            url = search_results_lg["source"]["layers"][0]["thredds_opendap_url"]
-                            if '.html' in url:
-                                url = url.replace('.html', '')
+                            url = search_results_lg["source"]["layers"][0][
+                                "thredds_opendap_url"
+                            ]
+                            if ".html" in url:
+                                url = url.replace(".html", "")
                             urlpaths.append(url)
                         else:
                             urlpaths.append("")
@@ -561,7 +580,7 @@ sources:
 
                     # check for when no urlpaths, don't save entry
                     # if not opendap accessible
-                    elif set(urlpaths) == {''}:
+                    elif set(urlpaths) == {""}:
                         logger.warning(
                             f"no opendap url for module: module uuid {dataset_id} for any of its layer_groups. Do not include entry in catalog."
                         )
@@ -667,7 +686,9 @@ sources:
 
             if self.filetype == "csv":
                 # read units from metadata variable meta_url for columns
-                variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])["variables"]
+                variables = pd.read_json(self.meta.loc[dataset_id]["meta_url"])[
+                    "variables"
+                ]
                 # .to_dask().compute() seems faster than read but
                 # should do more comparisons
                 data = self.catalog[dataset_id].to_dask().compute()
@@ -717,7 +738,7 @@ sources:
                         )
                     except KeyError as e:
                         logger.exception(e)
-                        logger.warning('Could not subset in time.')
+                        logger.warning("Could not subset in time.")
                         pass
 
                 except Exception as e:

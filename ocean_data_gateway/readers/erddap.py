@@ -15,6 +15,7 @@ from erddapy import ERDDAP
 from joblib import Parallel, delayed
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import Reader
 
 
@@ -53,8 +54,7 @@ class ErddapReader(Reader):
         reader is defined as "ErddapReader".
     """
 
-    def __init__(self, known_server="ioos", protocol=None, server=None,
-                 parallel=True):
+    def __init__(self, known_server="ioos", protocol=None, server=None, parallel=True):
         """
         Parameters
         ----------
@@ -131,6 +131,22 @@ class ErddapReader(Reader):
         self.store = dict()
 
     def __getitem__(self, key):
+        """Redefinition of dict-like behavior.
+
+        This enables user to use syntax `reader[dataset_id]` to read in and
+        save dataset into the object.
+
+        Parameters
+        ----------
+        key: str
+            dataset_id for a dataset that is available in the search/reader
+            object.
+
+        Returns
+        -------
+        xarray Dataset of the data associated with key
+        """
+
         returned_data = self.data_by_dataset(key)
         # returned_data = self._return_data(key)
         self.__setitem__(key, returned_data)

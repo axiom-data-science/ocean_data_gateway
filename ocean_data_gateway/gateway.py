@@ -15,6 +15,7 @@ import xarray as xr  # noqa: E402
 from ioos_qc.config import QcConfig  # noqa: E402
 
 import ocean_data_gateway as odg  # noqa: E402
+
 from ocean_data_gateway import Reader  # noqa: E402
 
 
@@ -115,6 +116,22 @@ class Gateway(Reader):
         self.store = dict()
 
     def __getitem__(self, key):
+        """Redefinition of dict-like behavior.
+
+        This enables user to use syntax `reader[dataset_id]` to read in and
+        save dataset into the object.
+
+        Parameters
+        ----------
+        key: str
+            dataset_id for a dataset that is available in the search/reader
+            object.
+
+        Returns
+        -------
+        xarray Dataset of the data associated with key
+        """
+
         returned_data = self.data_by_dataset(key)
         # returned_data = self._return_data(key)
         self.__setitem__(key, returned_data)
@@ -379,7 +396,9 @@ class Gateway(Reader):
         """
 
         if dataset_ids is None:
-            data_ids = self.keys()  # Only return already read-in dataset_ids  # self.dataset_ids
+            data_ids = (
+                self.keys()
+            )  # Only return already read-in dataset_ids  # self.dataset_ids
         else:
             data_ids = dataset_ids
             if not isinstance(data_ids, list):
@@ -422,10 +441,7 @@ class Gateway(Reader):
                 dd2.columns.set_levels(new_levs, level=1, inplace=True)
             elif isinstance(dd, xr.Dataset):
                 for Var in dd2.data_vars:
-                    if (
-                        "units" in dd2[Var].attrs
-                        and dd2[Var].attrs["units"] == "1e-3"
-                    ):
+                    if "units" in dd2[Var].attrs and dd2[Var].attrs["units"] == "1e-3":
                         dd2[Var].attrs["units"] = "psu"
             # run pint quantify on each data structure
             dd2 = dd2.pint.quantify()

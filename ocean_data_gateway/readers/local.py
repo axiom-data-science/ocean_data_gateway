@@ -10,6 +10,7 @@ import intake
 import pandas as pd
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import Reader
 
 
@@ -103,6 +104,22 @@ class LocalReader(Reader):
         self.store = dict()
 
     def __getitem__(self, key):
+        """Redefinition of dict-like behavior.
+
+        This enables user to use syntax `reader[dataset_id]` to read in and
+        save dataset into the object.
+
+        Parameters
+        ----------
+        key: str
+            dataset_id for a dataset that is available in the search/reader
+            object.
+
+        Returns
+        -------
+        xarray Dataset of the data associated with key
+        """
+
         returned_data = self.data_by_dataset(key)
         self.__setitem__(key, returned_data)
         return returned_data
