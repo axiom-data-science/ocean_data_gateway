@@ -4,32 +4,12 @@ channels:
 dependencies:
    - python=3.8
    # If your docs code examples depend on other packages add them here
-   # - aiohttp
-   # - cf_xarray>=0.6
-   # - dask
-   # - erddapy
-   # - flake8
-   # - h5netcdf
-   # - intake
-   # - intake-xarray
-   # - ioos_qc
+   # But docs that are notebooks are not rerun in the doc-making process
+   # so don't need all those packages
    - ipython
-   # - isort
-   # - joblib
    - jupyter
    - jupyterlab
-   # - matplotlib
-   # - netcdf4
-   # - numpy
    - ocean_data_gateway
-   # - pandas
-   # - pint
-   # - pint-pandas
-   # - pint-xarray
-   # - pytest
-   # - requests
-   # - scipy
-   # - xarray
    # These are needed for the docs themselves
    - numpydoc
    # https://stackoverflow.com/questions/68642540/nbsphinx-causes-build-to-fail-when-building-jupyter-notebooks
