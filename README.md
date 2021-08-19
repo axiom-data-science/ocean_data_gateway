@@ -5,7 +5,7 @@ ocean_data_gateway
 [![License:MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://img.shields.io/readthedocs/ocean_data_gateway/latest.svg?style=for-the-badge)](https://ocean_data_gateway.readthedocs.io/en/latest/?badge=latest)
 [![Code Style Status](https://img.shields.io/github/workflow/status/axiom-data-science/ocean_data_gateway/linting%20with%20pre-commit?label=Code%20Style&style=for-the-badge)](https://github.com/axiom-data-science/ocean_data_gateway/actions)
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/ocean_data_gateway.svg?style=for-the-badge)](https://anaconda.org/conda-forge/ocean_data_gateway)
+[![Conda Version](https://img.shields.io/badge/Anaconda.org-V0.3.0-blue.svg?style=for-the-badge)](https://anaconda.org/conda-forge/ocean_data_gateway)
 [![Python Package Index](https://img.shields.io/pypi/v/ocean_data_gateway.svg?style=for-the-badge)](https://pypi.org/project/ocean_data_gateway)
 
 Your gateway to ocean data.
