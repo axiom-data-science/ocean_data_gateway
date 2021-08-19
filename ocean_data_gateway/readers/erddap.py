@@ -191,7 +191,9 @@ class ErddapReader(Reader):
                 dataset_id = [
                     dataset_id
                     for dataset_id in df["Dataset ID"]
-                    if station.lower() in [dataset_id.lower()] + dataset_id.lower().split("_")][0]
+                    if station.lower()
+                    in [dataset_id.lower()] + dataset_id.lower().split("_")
+                ][0]
 
         except Exception as e:
             logger.exception(e)
@@ -939,9 +941,6 @@ class stations(ErddapReader):
             if not isinstance(stations, list):
                 stations = [stations]
         self._stations = stations
-            # self.dataset_ids
-        # else:
-        #     self._stations = stations
 
         # CHECK FOR KW VALUES AS TIMES
         if kw is None:
