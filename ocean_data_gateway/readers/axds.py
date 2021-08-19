@@ -331,15 +331,12 @@ class AxdsReader(Reader):
 
             elif self.approach == "stations":
                 urls = []
-                # if input stations instead of dataset_ids, using different urls here
-                # if self._stations is not None:
+                # check station names as both queries and as exact names
                 if len(self._stations) > 0:
                     for station in self._stations:
                         urls.append(self.url_builder(self.url_axds_type, query=station))
-                else:
-                    for dataset_id in self._dataset_ids:
                         urls.append(
-                            self.url_builder(self.url_docs_base, dataset_id=dataset_id)
+                            self.url_builder(self.url_docs_base, dataset_id=station)
                         )
 
             self._urls = urls
@@ -365,13 +362,15 @@ class AxdsReader(Reader):
             # loop over urls
             search_results = []
             for url in self.urls:
-                res = requests.get(url, headers=self.search_headers).json()
-                # get different returns for an id docs grab vs. generic search
-                #                 if isinstance(res, list):
-                #                     res = res[0]
-                if isinstance(res, dict):
-                    res = res["results"]
-                search_results.extend(res)
+                # first make sure is legitimate web address
+                if requests.get(url).status_code == 200:
+                    res = requests.get(url, headers=self.search_headers).json()
+                    # get different returns for an id docs grab vs. generic search
+                    #                 if isinstance(res, list):
+                    #                     res = res[0]
+                    if isinstance(res, dict):
+                        res = res["results"]
+                    search_results.extend(res)
             # change search_results to a dictionary to remove
             # duplicate dataset_ids
             search_results_dict = {}
@@ -1088,21 +1087,18 @@ class stations(AxdsReader):
             * kw: dict, optional
               Contains time search constraints: `min_time`, `max_time`.
               If not input, all time will be used.
-            * dataset_ids: string, list, optional
-              Use this option if you know the exact dataset_ids for the data
-              you want and `axds_type=='platform2'`. These need to be the
-              dataset_ids corresponding to the databases that are being
-              searched, so in this case they need to be the Axiom packrat
-              uuid's. If you know station names but not the specific database
-              uuids, input the names as "stations" instead.
-              If `axds_type=='layer_group'` do not use this approach. Instead,
-              use the keyword "stations" and input the layer_group uuids you
-              want to search for.
             * stations: string, list, optional
               Input station names as they might be commonly known and therefore
               can be searched for as a query term. The station names can be
               input as something like "TABS B" or "8771972" and has pretty good
               success.
+              Or, use this option if you know the exact dataset_ids for
+              the data you want and `axds_type=='platform2'`. These need to be
+              the dataset_ids corresponding to the databases that are being
+              searched, so in this case they need to be the Axiom packrat
+              uuid's.
+              If `axds_type=='layer_group'`, input the layer_group uuids you
+              want to search for.
 
         Notes
         -----
@@ -1119,7 +1115,6 @@ class stations(AxdsReader):
         AxdsReader.__init__(self, **ax_kwargs)
 
         kw = kwargs.get("kw", None)
-        dataset_ids = kwargs.get("dataset_ids", None)
         stations = kwargs.get("stations", [])
 
         self.approach = "stations"
@@ -1128,12 +1123,6 @@ class stations(AxdsReader):
         # if self.axds_type == "layer_group":
         #     assertion = 'Input "layer_group" (not module) uuids as station names, not dataset_ids.'
         #     assert dataset_ids is None, assertion
-
-        if dataset_ids is not None:
-            if not isinstance(dataset_ids, list):
-                dataset_ids = [dataset_ids]
-            #             self._stations = dataset_ids
-            self._dataset_ids = dataset_ids
 
         if not stations == []:
             if not isinstance(stations, list):

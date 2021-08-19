@@ -6,7 +6,7 @@ import ocean_data_gateway as odg
 
 
 def test_station_ioos_1dataset_id_alltime():
-    station = odg.erddap.stations({"dataset_ids": "noaa_nos_co_ops_8771013"})
+    station = odg.erddap.stations({"stations": "noaa_nos_co_ops_8771013"})
     assert station.kw == {"min_time": "1900-01-01", "max_time": "2100-12-31"}
     assert station.dataset_ids == ["noaa_nos_co_ops_8771013"]
 
@@ -14,7 +14,7 @@ def test_station_ioos_1dataset_id_alltime():
 def test_station_ioos_1dataset_id():
     dataset_id = "noaa_nos_co_ops_8771013"
     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-    kwargs = {"dataset_ids": "noaa_nos_co_ops_8771013", "kw": kw, "parallel": False}
+    kwargs = {"stations": "noaa_nos_co_ops_8771013", "kw": kw, "parallel": False}
     station = odg.erddap.stations(kwargs)
     assert station.kw == {"min_time": "2019-1-1", "max_time": "2019-1-2"}
     assert isinstance(station.meta, pd.DataFrame)
@@ -30,7 +30,7 @@ def test_station_ioos_1dataset_id():
 def test_station_ioos_2dataset_ids():
     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
     dataset_ids = ["noaa_nos_co_ops_8771013", "noaa_nos_co_ops_8774230"]
-    stations = odg.erddap.stations({"dataset_ids": dataset_ids, "kw": kw})
+    stations = odg.erddap.stations({"stations": dataset_ids, "kw": kw})
     assert stations.dataset_ids == dataset_ids
     assert not stations.meta.empty
 

@@ -187,10 +187,12 @@ class ErddapReader(Reader):
                     if station.lower() == dataset_id.lower()
                 ][0]
             else:
+                # first try as dataset_id then do as station name
                 dataset_id = [
                     dataset_id
                     for dataset_id in df["Dataset ID"]
-                    if station.lower() in dataset_id.lower().split("_")
+                    if station.lower()
+                    in [dataset_id.lower()] + dataset_id.lower().split("_")
                 ][0]
 
         except Exception as e:
@@ -904,18 +906,14 @@ class stations(ErddapReader):
             * kw: dict, optional
               Contains time search constraints: `min_time`, `max_time`.
               If not input, all time will be used.
-            * dataset_ids: string, list, optional
-              Use this option if you know the exact dataset_ids for the data
-              you want. These need to be the dataset_ids corresponding to the
-              databases that are being searched, so in this case they need to be
-               the ERDDAP server's dataset_ids. If you know station names but
-              not the specific database uuids, input the names as "stations"
-              instead.
             * stations: string, list, optional
               Input station names as they might be commonly known and therefore
               can be searched for as a query term. The station names can be
               input as something like "TABS B" or "8771972" and has pretty good
               success.
+              Or, input the exact dataset_ids for the data you want,
+              corresponding to the databases that are being searched, so in this
+              case they need to be the ERDDAP server's dataset_ids.
 
         Notes
         -----
@@ -932,7 +930,6 @@ class stations(ErddapReader):
         ErddapReader.__init__(self, **er_kwargs)
 
         kw = kwargs.get("kw", None)
-        dataset_ids = kwargs.get("dataset_ids", None)
         stations = kwargs.get("stations", [])
 
         self.approach = "stations"
@@ -940,18 +937,10 @@ class stations(ErddapReader):
         # we want all the data associated with stations
         self.variables = None
 
-        if dataset_ids is not None:
-            if not isinstance(dataset_ids, list):
-                dataset_ids = [dataset_ids]
-            self._dataset_ids = dataset_ids
-
         if not stations == []:
             if not isinstance(stations, list):
                 stations = [stations]
-            self._stations = stations
-            self.dataset_ids
-        else:
-            self._stations = stations
+        self._stations = stations
 
         # CHECK FOR KW VALUES AS TIMES
         if kw is None:

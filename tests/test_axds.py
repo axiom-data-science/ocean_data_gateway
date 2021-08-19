@@ -16,7 +16,7 @@ def test_station_platforms_1dataset_id_alltime():
     station = odg.axds.stations(
         {
             "axds_type": "platform2",
-            "dataset_ids": "c61eecf1-1c0e-5287-b6fb-a92b51b14d54",
+            "stations": "c61eecf1-1c0e-5287-b6fb-a92b51b14d54",
         }
     )
     assert station.kw == {"min_time": "1900-01-01", "max_time": "2100-12-31"}
@@ -29,7 +29,7 @@ def test_station_platforms_1dataset_id():
     station = odg.axds.stations(
         {
             "axds_type": "platform2",
-            "dataset_ids": dataset_ids,
+            "stations": dataset_ids,
             "kw": kw,
             "parallel": False,
         }
@@ -53,7 +53,7 @@ def test_station_platforms_2dataset_ids():
         "7d4ea195-aeda-5c78-aa0d-d4f77ba0ad95",
     ]
     stations = odg.axds.stations(
-        {"axds_type": "platform2", "dataset_ids": dataset_ids, "kw": kw}
+        {"axds_type": "platform2", "stations": dataset_ids, "kw": kw}
     )
     assert stations.dataset_ids == dataset_ids
 
