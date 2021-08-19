@@ -3,13 +3,16 @@ Functions to check variable names for readers.
 """
 
 import multiprocessing
-import numpy as np
-import ocean_data_gateway as odg
 import os
-import pandas as pd
 import re
 import urllib.parse
+
+import numpy as np
+import pandas as pd
+
 from joblib import Parallel, delayed
+
+import ocean_data_gateway as odg
 
 
 def count(url):
@@ -103,7 +106,7 @@ def all_variables(server, parallel=True):
     pH                                                 965
     """
 
-    if 'axds' in server:
+    if "axds" in server:
 
         path_fname = odg.variables_path.joinpath("parameter_group_names.txt")
         path_csv_fname = odg.variables_path.joinpath("axds_platform2_variable_list.csv")
@@ -154,7 +157,9 @@ def all_variables(server, parallel=True):
             )
             # This took 10 min running in parallel for ioos
             # 2 min for coastwatch
-            url = f"{server}/categorize/variableName/index.csv?page=1&itemsPerPage=100000"
+            url = (
+                f"{server}/categorize/variableName/index.csv?page=1&itemsPerPage=100000"
+            )
             df = pd.read_csv(url)
             if not parallel:
                 counts = []

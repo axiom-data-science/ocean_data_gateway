@@ -4,11 +4,11 @@ Reader for ERDDAP servers.
 
 import logging
 import multiprocessing
+import urllib.parse
 
 import cf_xarray  # noqa: F401
 import numpy as np
 import pandas as pd
-import urllib.parse
 import xarray as xr
 
 from erddapy import ERDDAP

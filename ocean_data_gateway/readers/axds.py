@@ -843,7 +843,7 @@ class region(AxdsReader):
 
         # make sure variables are on parameter list if platform2
         if (variables is not None) and (self.axds_type == "platform2"):
-            odg.check_variables('axds', variables)
+            odg.check_variables("axds", variables)
 
         self.variables = variables
 
