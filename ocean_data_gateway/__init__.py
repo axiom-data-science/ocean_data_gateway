@@ -19,6 +19,7 @@ import requests  # noqa: E402
 from .utils import Reader, load_data, resample_like  # isort:skip  # noqa: E402, F401
 from .gateway import Gateway  # isort:skip  # noqa: E402, F401
 from .readers import axds, erddap, local  # isort:skip  # noqa: E402
+from .vars import all_variables, check_variables, search_variables  # isort:skip  # noqa: F401, E402
 
 
 try:

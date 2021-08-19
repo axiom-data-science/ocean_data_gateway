@@ -4,11 +4,11 @@ Reader for ERDDAP servers.
 
 import logging
 import multiprocessing
-import re
 
 import cf_xarray  # noqa: F401
 import numpy as np
 import pandas as pd
+import urllib.parse
 import xarray as xr
 
 from erddapy import ERDDAP
@@ -93,7 +93,8 @@ class ErddapReader(Reader):
             )
             assert (protocol is not None) & (server is not None), statement
         else:
-            known_server = server.strip("/erddap").strip("http://").replace(".", "_")
+            known_server = urllib.parse.urlparse(server).netloc
+            # known_server = server.strip("/erddap").strip("http://").replace(".", "_")
             statement = (
                 "either select a known server or input protocol and server string"
             )
@@ -571,256 +572,6 @@ class ErddapReader(Reader):
         output = odg.utils.load_data(self, dataset_ids)
         return output
 
-    def count(self, url):
-        """Small helper function to count len(results) at url."""
-        try:
-            return len(pd.read_csv(url))
-        except:
-            return np.nan
-
-    def all_variables(self):
-        """Return a DataFrame of allowed variable names.
-
-        Returns
-        -------
-        DataFrame of variable names and count of how many times they are present in the database.
-
-        Notes
-        -----
-        This list is specific to the given ERDDAP server. If you are using
-        an user-input server, it will have its own `known_server` name and upon
-        running this function the first time, you should get a variable list for
-        that server.
-
-        Examples
-        --------
-        >>> import ocean_data_gateway as odg
-        >>> odg.erddap.ErddapReader(known_server='ioos').all_variables()
-                                           count
-        variable
-        air_pressure                        4028
-        air_pressure_10011met_a                2
-        air_pressure_10311ahlm_a               2
-        air_pressure_10311ahlm_a_qc_agg        1
-        air_pressure_10311ahlm_a_qc_tests      1
-        ...                                  ...
-        wind_speed_windbird_qc_agg             1
-        wind_speed_windbird_qc_tests           1
-        wind_to_direction                     55
-        wmo_id                               954
-        z                                  37377
-
-        Or for a different `known_server`:
-
-        >>> odg.erddap.ErddapReader(known_server='coastwatch').all_variables()
-                      count
-        variable
-        abund_m3          2
-        ac_line           1
-        ac_sta            1
-        adg_412           8
-        adg_412_bias      8
-        ...             ...
-        yeardeployed      1
-        yield             1
-        z                 3
-        z_mean            2
-        zlev              6
-        """
-
-        path_name_counts = odg.variables_path.joinpath(
-            f"erddap_variable_list_{self.known_server}.csv"
-        )
-
-        if path_name_counts.is_file():
-            return pd.read_csv(path_name_counts, index_col="variable")
-        else:
-            print(
-                "Please wait while the list of available variables is made. This only happens once but could take 10 minutes."
-            )
-            # This took 10 min running in parallel for ioos
-            # 2 min for coastwatch
-            url = f"{self.e.server}/categorize/variableName/index.csv?page=1&itemsPerPage=100000"
-            df = pd.read_csv(url)
-            if not self.parallel:
-                counts = []
-                for url in df.URL:
-                    counts.append(self.count(url))
-            else:
-                num_cores = multiprocessing.cpu_count()
-                counts = Parallel(n_jobs=num_cores)(
-                    delayed(self.count)(url) for url in df.URL
-                )
-            dfnew = pd.DataFrame()
-            dfnew["variable"] = df["Category"]
-            dfnew["count"] = counts
-            dfnew = dfnew.set_index("variable")
-            # remove nans
-            if (dfnew.isnull().sum() > 0).values:
-                dfnew = dfnew[~dfnew.isnull().values].astype(int)
-            dfnew.to_csv(path_name_counts)
-
-        return dfnew
-
-    def search_variables(self, variables):
-        """Find valid variables names to use.
-
-        Parameters
-        ----------
-        variables: string, list
-            String or list of strings to use in regex search to find valid
-            variable names.
-
-        Returns
-        -------
-        DataFrame of variable names and count of how many times they are present in the database, sorted by count.
-
-        Notes
-        -----
-        This list is only specific to the ERDDAP server.
-
-        Examples
-        --------
-
-        Search for variables that contain the substring 'sal':
-
-        >>> odg.erddap.ErddapReader(known_server='ioos').search_variables('sal')
-                                                        count
-        variable
-        salinity                                          954
-        salinity_qc                                       954
-        sea_water_practical_salinity                      778
-        soil_salinity_qc_agg                              622
-        soil_salinity                                     622
-        ...                                               ...
-        sea_water_practical_salinity_4161sc_a_qc_tests      1
-        sea_water_practical_salinity_6754mc_a_qc_tests      1
-        sea_water_practical_salinity_6754mc_a_qc_agg        1
-        sea_water_practical_salinity_4161sc_a_qc_agg        1
-        sea_water_practical_salinity_10091sc_a              1
-
-        Find available variables sorted by count:
-
-        >>>  odg.erddap.ErddapReader(known_server='ioos').search_variables('')
-                                                            count
-        variable
-        time                                                38331
-        longitude                                           38331
-        latitude                                            38331
-        z                                                   37377
-        station                                             37377
-        ...                                                   ...
-        sea_surface_wave_from_direction_elw11a3t01wv_qc...      1
-        sea_surface_wave_from_direction_elw11b2t01wv            1
-        sea_surface_wave_from_direction_elw11b2t01wv_qc...      1
-        sea_surface_wave_from_direction_elw11b2t01wv_qc...      1
-        sea_water_pressure_7263arc_a                            1
-        """
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        # set up search for input variables
-        search = f"(?i)"
-        for variable in variables:
-            search += f".*{variable}|"
-        search = search.strip("|")
-
-        r = re.compile(search)
-
-        # just get the variable names
-        df = self.all_variables()
-        parameters = df.index
-
-        matches = list(filter(r.match, parameters))
-
-        # return parameters that match input variable strings
-        return df.loc[matches].sort_values("count", ascending=False)
-
-    def check_variables(self, variables, verbose=False):
-        """Checks variables for presence in database list.
-
-        Parameters
-        ----------
-        variables: string, list
-            String or list of strings to compare against list of valid
-            variable names.
-        verbose: boolean, optional
-            Print message if variables are matches instead of passing silently.
-
-        Returns
-        -------
-        Nothing is returned. However, there are two types of behavior:
-
-        if variables is not a valid variable name(s), an AssertionError is
-          raised and `search_variables(variables)` is run on your behalf to
-          suggest valid variable names to use.
-        if variables is a valid variable name(s), nothing happens.
-
-        Notes
-        -----
-        This list is specific to the ERDDAP server being used.
-
-        Examples
-        --------
-        Check if the variable name 'sal' is valid:
-
-        >>> odg.erddap.ErddapReader(known_server='ioos').check_variables('sal')
-        AssertionError                            Traceback (most recent call last)
-        <ipython-input-13-f8082c9bfafa> in <module>
-        ----> 1 odg.erddap.ErddapReader(known_server='ioos').check_variables('sal')
-        ~/projects/ocean_data_gateway/ocean_data_gateway/readers/erddap.py in check_variables(self, variables, verbose)
-            572         salinity_qc                                       954
-            573         sea_water_practical_salinity                      778
-        --> 574         soil_salinity_qc_agg                              622
-            575         soil_salinity                                     622
-            576         ...                                               ...
-        AssertionError: The input variables are not exact matches to ok variables for known_server ioos.
-        Check all parameter group values with `ErddapReader().all_variables()`
-        or search parameter group values with `ErddapReader().search_variables(['sal'])`.
-         Try some of the following variables:
-                                                        count
-        variable
-        salinity                                          954
-        salinity_qc                                       954
-        sea_water_practical_salinity                      778
-        soil_salinity_qc_agg                              622
-        soil_salinity                                     622
-        ...                                               ...
-        sea_water_practical_salinity_4161sc_a_qc_tests      1
-        sea_water_practical_salinity_6754mc_a_qc_tests      1
-        sea_water_practical_salinity_6754mc_a_qc_agg        1
-        sea_water_practical_salinity_4161sc_a_qc_agg        1
-        sea_water_practical_salinity_10091sc_a              1
-
-        Check if the variable name 'salinity' is valid:
-
-        >>> odg.erddap.ErddapReader(known_server='ioos').check_variables('salinity')
-
-        """
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        parameters = list(self.all_variables().index)
-
-        # for a variable to exactly match a parameter
-        # this should equal 1
-        count = []
-        for variable in variables:
-            count += [parameters.count(variable)]
-
-        condition = np.allclose(count, 1)
-
-        assertion = f"The input variables are not exact matches to ok variables for known_server {self.known_server}. \
-                     \nCheck all parameter group values with `ErddapReader().all_variables()` \
-                     \nor search parameter group values with `ErddapReader().search_variables({variables})`.\
-                     \n\n Try some of the following variables:\n{str(self.search_variables(variables))}"  # \
-        assert condition, assertion
-
-        if condition and verbose:
-            print("all variables are matches!")
-
 
 # Search for stations by region
 class region(ErddapReader):
@@ -832,7 +583,7 @@ class region(ErddapReader):
       Contains space and time search constraints: `min_lon`, `max_lon`,
       `min_lat`, `max_lat`, `min_time`, `max_time`.
     variables: string or list
-      Variable names if you want to limit the search to those. The variable name or names must be from the list available in `all_variables()` for the specific ERDDAP server and pass the check in `check_variables()`.
+      Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
     approach: string
         approach is defined as 'region' for this class.
     """
@@ -850,7 +601,7 @@ class region(ErddapReader):
               Contains space and time search constraints: `min_lon`, `max_lon`,
               `min_lat`, `max_lat`, `min_time`, `max_time`.
             * variables: string or list, optional
-              Variable names if you want to limit the search to those. The variable name or names must be from the list available in `all_variables()` for the specific ERDDAP server and pass the check in `check_variables()`.
+              Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
@@ -877,7 +628,7 @@ class region(ErddapReader):
 
         # make sure variables are on parameter list
         if variables is not None:
-            self.check_variables(variables)
+            odg.check_variables(self.e.server, variables)
         self.variables = variables
 
 

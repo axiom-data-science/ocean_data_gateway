@@ -263,9 +263,9 @@ class AxdsReader(Reader):
         variable: string, optional
             String of variable description to filter by, if desired.
             If `axds_type=='platform2'`, find the variable name options with
-            class function `all_variables()`, search for variable names by
-            string with `search_variables()`, and check your variable list with
-            `check_variables()`.
+            class function `odg.all_variables('axds')`, search for variable names by
+            string with `odg.search_variables('axds', variables)`, and check your variable list with
+            `check_variables('axds', variables)`.
             If `axds_type=='layer_group'`, there is no official variable list
             and you can instead just put in a basic variable name and hope the
             search works.
@@ -782,219 +782,6 @@ sources:
                 path_file = odg.path_files.joinpath(filename)
                 data.to_netcdf(path_file)
 
-    def all_variables(self):
-        """Return a DataFrame of allowed variable names.
-
-        Returns
-        -------
-        DataFrame of variable names and count of how many times they are present in the database.
-
-        Notes
-        -----
-        This list is only relevant for `self.axds_type=='platform2'`. It is not
-        relevant for `self.axds_type=='layer_group'.
-
-        Example
-        -------
-        >>> import ocean_data_gateway as odg
-        >>> odg.axds.AxdsReader().all_variables()
-                                                         count
-        variable
-        Ammonium                                            23
-        Atmospheric Pressure: Air Pressure at Sea Level    362
-        Atmospheric Pressure: Barometric Pressure         4152
-        Backscatter Intensity                              286
-        Battery                                           2705
-        ...                                                ...
-        Winds: Samples                                       1
-        Winds: Speed and Direction                        7091
-        Winds: Vertical Wind                                 4
-        Winds: at 10 m                                      18
-        pH                                                 965
-        """
-
-        path_fname = odg.variables_path.joinpath("parameter_group_names.txt")
-        path_csv_fname = odg.variables_path.joinpath("axds_platform2_variable_list.csv")
-        # read in Axiom Search parameter group names
-        # save to file
-        if path_csv_fname.is_file():
-            df = pd.read_csv(path_csv_fname, index_col="variable")
-        else:
-            print(
-                "Please wait while the list of available variables is made. This only happens once."
-            )
-            os.system(
-                f'curl -sSL -H "Accept: application/json" "https://search.axds.co/v2/search" | jq -r \'.tags["Parameter Group"][] | "\(.label) \(.count)"\' > {path_fname}'
-            )
-
-            # read in parameter group names
-            f = open(path_fname, "r")
-            parameters_temp = f.readlines()
-            f.close()
-            #         parameters = [parameter.strip('\n') for parameter in parameters]
-            parameters = {}
-            for parameter in parameters_temp:
-                parts = parameter.strip("\n").split()
-                name = " ".join(parts[:-1])
-                count = parts[-1]
-                parameters[name] = count
-
-            df = pd.DataFrame()
-            df["variable"] = parameters.keys()
-            df["count"] = parameters.values()
-            df = df.set_index("variable")
-            df.to_csv(path_csv_fname)
-
-        return df
-
-    def search_variables(self, variables):
-        """Find valid variables names to use.
-
-        Parameters
-        ----------
-        variables: string, list
-            String or list of strings to use in regex search to find valid
-            variable names.
-
-        Returns
-        -------
-        DataFrame of variable names and count of how many times they are present in the database, sorted by count.
-
-        Notes
-        -----
-        This list is only relevant for `self.axds_type=='platform2'`. It is not
-        relevant for `self.axds_type=='layer_group'.
-
-        Examples
-        --------
-
-        Search for variables that contain the substring 'sal':
-
-        >>> odg.axds.AxdsReader().search_variables('sal')
-                       count
-        variable
-        Salinity        3204
-        Soil Salinity    622
-
-        Return all available variables, sorted by count (or could use
-        `all_variables()` directly):
-
-        >>>  odg.axds.AxdsReader().search_variables('')
-                                                            count
-        variable
-        Stream Height                                       19758
-        Water Surface above Datum                           19489
-        Stream Flow                                         15203
-        Temperature: Air Temperature                         8369
-        Precipitation                                        7364
-        ...                                                   ...
-        Vent Fluid Temperature                                  1
-        Vent Fluid Thermocouple Temperature - Low               1
-        CO2: PPM of Carbon Dioxide in Sea Water in Wet Gas      1
-        CO2: PPM of Carbon Dioxide in Air in Dry Gas            1
-        Evaporation Rate                                        1
-        """
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        # set up search for input variables
-        search = f"(?i)"
-        for variable in variables:
-            search += f".*{variable}|"
-        search = search.strip("|")
-
-        r = re.compile(search)
-
-        df = self.all_variables()
-        parameters = df.index
-
-        matches = list(filter(r.match, parameters))
-
-        # return parameters that match input variable strings
-        return df.loc[matches].sort_values("count", ascending=False)
-
-    def check_variables(self, variables, verbose=False):
-        """Checks variables for presence in database list.
-
-        Parameters
-        ----------
-        variables: string, list
-            String or list of strings to compare against list of valid
-            variable names.
-        verbose: boolean, optional
-            Print message if variables are matches instead of passing silently.
-
-        Returns
-        -------
-        Nothing is returned. However, there are two types of behavior:
-
-        if variables is not a valid variable name(s), an AssertionError is raised and `search_variables(variables)` is run on your behalf to suggest valid variable names to use.
-        if variables is a valid variable name(s), nothing happens.
-
-        Notes
-        -----
-        This list is only relevant for `self.axds_type=='platform2'`. It is not
-        relevant for `self.axds_type=='layer_group'.
-
-        Examples
-        --------
-
-        Check if the variable name 'sal' is valid:
-
-        >>> odg.axds.AxdsReader().check_variables('sal')
-        AssertionError                            Traceback (most recent call last)
-        <ipython-input-11-454838d2e555> in <module>
-        ----> 1 odg.axds.AxdsReader().check_variables('sal')
-        ~/projects/ocean_data_gateway/ocean_data_gateway/readers/axds.py in check_variables(self, variables, verbose)
-            878         CO2: PPM of Carbon Dioxide in Air in Dry Gas            1
-            879         Evaporation Rate                                        1
-        --> 880         \"""
-            881
-            882         if not isinstance(variables, list):
-        AssertionError: The input variables are not exact matches to parameter groups.
-        Check all parameter group values with `AxdsReader().all_variables()`
-        or search parameter group values with `AxdsReader().search_variables(['sal'])`.
-         Try some of the following variables:
-                       count
-        variable
-        Salinity        3204
-        Soil Salinity    622
-
-        Check if the variable name 'Salinity' is valid:
-
-        >>>  odg.axds.AxdsReader().check_variables('Salinity')
-
-        """
-
-        assertion = f'Variables are only used to filter the search for \
-                    \n`axds_type="platform2". Currently, \
-                    \naxds_type={self.axds_type}.'
-        assert self.axds_type == "platform2", assertion
-
-        if not isinstance(variables, list):
-            variables = [variables]
-
-        parameters = list(self.all_variables().index)
-
-        # for a variable to exactly match a parameter
-        # this should equal 1
-        count = []
-        for variable in variables:
-            count += [parameters.count(variable)]
-
-        condition = np.allclose(count, 1)
-
-        assertion = f"The input variables are not exact matches to parameter groups. \
-                     \nCheck all parameter group values with `AxdsReader().all_variables()` \
-                     \nor search parameter group values with `AxdsReader().search_variables({variables})`.\
-                     \n\n Try some of the following variables:\n{str(self.search_variables(variables))}"
-
-        assert condition, assertion
-
-        if condition and verbose:
-            print("all variables are matches!")
-
 
 class region(AxdsReader):
     """Inherits from AxdsReader to search over a region of space and time.
@@ -1008,7 +795,7 @@ class region(AxdsReader):
       Variable names if you want to limit the search to those. There is
       different behavior depending on `axds_type`:
 
-      * 'platform2': the variable name or names must be from the list available in `all_variables()` and pass the check in `check_variables()`.
+      * 'platform2': the variable name or names must be from the list available in `odg.all_variables('axds')` and pass the check in `odg.check_variables('axds', variables)`.
       * 'layer_group': the variable name or names will be searched for as a query so just do your best with the names and experiment.
     approach: string
         approach is defined as 'region' for this class.
@@ -1029,8 +816,8 @@ class region(AxdsReader):
               Variable names if you want to limit the search to those. There is
               different behavior depending on `axds_type`:
 
-              * 'platform2': the variable name or names must be from the list available in `all_variables()` and pass the check in
-                `check_variables()`.
+              * 'platform2': the variable name or names must be from the list available in `odg.all_variables('axds')` and pass the check in
+                `odg.check_variables('axds', variables)`.
               * 'layer_group': the variable name or names will be searched for
                 as a query so just do your best with the names and experiment.
         """
@@ -1056,7 +843,7 @@ class region(AxdsReader):
 
         # make sure variables are on parameter list if platform2
         if (variables is not None) and (self.axds_type == "platform2"):
-            self.check_variables(variables)
+            odg.check_variables('axds', variables)
 
         self.variables = variables
 
