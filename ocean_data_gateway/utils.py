@@ -48,6 +48,8 @@ def resample_like(ds_resample, ds_resample_to):
 def load_data(self, dataset_ids=None):
     """Read in data for readers some or all dataset_ids.
 
+    NOT USED CURRENTLY
+
     Once data is read in for a dataset_ids, it is remembered. This is used in
     all of the readers.
 

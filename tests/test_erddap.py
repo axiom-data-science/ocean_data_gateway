@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
 import ocean_data_gateway as odg
@@ -53,52 +54,55 @@ def test_station_ioos_2stations():
 
 
 # Slow on CI
-# def test_region_coastwatch():
-#     kw = {
-#         "min_time": "2019-1-1",
-#         "max_time": "2019-1-2",
-#         "min_lon": -99,
-#         "max_lon": -88,
-#         "min_lat": 20,
-#         "max_lat": 30,
-#     }
-#     variables = ["water_u", "water_v"]
-#     region = odg.erddap.region(
-#         {"kw": kw, "variables": variables, "known_server": "coastwatch"}
-#     )
-#     assert "ucsdHfrE1" in region.dataset_ids
-#     # assert sorted(region.dataset_ids) == ['ucsdHfrE1', 'ucsdHfrE2', 'ucsdHfrE6']
-#     assert not region.meta.empty
+@pytest.mark.slow
+def test_region_coastwatch():
+    kw = {
+        "min_time": "2019-1-1",
+        "max_time": "2019-1-2",
+        "min_lon": -99,
+        "max_lon": -88,
+        "min_lat": 20,
+        "max_lat": 30,
+    }
+    variables = ["water_u", "water_v"]
+    region = odg.erddap.region(
+        {"kw": kw, "variables": variables, "known_server": "coastwatch"}
+    )
+    assert "ucsdHfrE1" in region.dataset_ids
+    # assert sorted(region.dataset_ids) == ['ucsdHfrE1', 'ucsdHfrE2', 'ucsdHfrE6']
+    assert not region.meta.empty
 
 
-#
-# def test_station_coastwatch():
-#     kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
-#     dataset_id = "ucsdHfrE6"
-#     station = odg.erddap.stations(
-#         {
-#             "dataset_ids": dataset_id,
-#             "kw": kw,
-#             "parallel": False,
-#             "known_server": "coastwatch",
-#         }
-#     )
-#     assert station.kw == kw
-#     assert isinstance(station.meta, pd.DataFrame)
+@pytest.mark.slow
+def test_station_coastwatch():
+    kw = {"min_time": "2019-1-1", "max_time": "2019-1-2"}
+    dataset_id = "ucsdHfrE6"
+    station = odg.erddap.stations(
+        {
+            "stations": dataset_id,
+            "kw": kw,
+            "parallel": False,
+            "known_server": "coastwatch",
+        }
+    )
+    assert station.kw == kw
+    assert isinstance(station.meta, pd.DataFrame)
 
-# # too slow to use regularly with github actions
-# def test_region_ioos():
-#     kw = {
-#         "min_time": "2019-1-1",
-#         "max_time": "2019-1-2",
-#         "min_lon": -95,
-#         "max_lon": -94,
-#         "min_lat": 27,
-#         "max_lat": 29,
-#     }
-#     # if the code can run with this, it can deal with having 2 variables input
-#     # but not both variables in the datasets
-#     variables = ["salinity", "sea_water_practical_salinity"]
-#     region = odg.erddap.region({"kw": kw, "variables": variables})
-#     assert "tabs_b" in region.dataset_ids
-#     assert not region.meta.empty
+
+# too slow to use regularly with github actions
+@pytest.mark.slow
+def test_region_ioos():
+    kw = {
+        "min_time": "2019-1-1",
+        "max_time": "2019-1-2",
+        "min_lon": -95,
+        "max_lon": -94,
+        "min_lat": 27,
+        "max_lat": 29,
+    }
+    # if the code can run with this, it can deal with having 2 variables input
+    # but not both variables in the datasets
+    variables = ["salinity", "sea_water_practical_salinity"]
+    region = odg.erddap.region({"kw": kw, "variables": variables})
+    assert "tabs_b" in region.dataset_ids
+    assert not region.meta.empty

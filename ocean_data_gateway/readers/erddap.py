@@ -564,6 +564,8 @@ class ErddapReader(Reader):
     def data(self, dataset_ids=None):
         """Read in data for some or all dataset_ids.
 
+        NOT USED CURRENTLY
+
         Once data is read in for a dataset_ids, it is remembered.
 
         See full documentation in `utils.load_data()`.
