@@ -28,7 +28,7 @@ def test_units():
 
 def test_approach_default():
     search = odg.Gateway(kw={})
-    assert search.kwargs_all['approach'] == 'region'
+    assert search.kwargs_all["approach"] == "region"
 
 
 def test_qc():
