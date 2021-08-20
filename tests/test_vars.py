@@ -1,5 +1,7 @@
 import ocean_data_gateway as odg
 import pandas as pd
+import urllib.parse
+
 
 def test_all_variables_axds():
     df = odg.all_variables('axds')
@@ -16,7 +18,7 @@ def test_all_variables_erddap():
     df = odg.all_variables(ioos)
 
     # test
-    server_name = urllib.parse.urlparse(server).netloc
+    server_name = urllib.parse.urlparse(ioos).netloc
     path_name_counts = odg.variables_path.joinpath(
         f"erddap_variable_list_{server_name}.csv"
     )
