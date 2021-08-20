@@ -1,10 +1,12 @@
 import urllib.parse
 
 import pandas as pd
+import pytest
 
 import ocean_data_gateway as odg
 
 
+@pytest.mark.slow
 def test_all_variables_axds():
     df = odg.all_variables("axds")
 
@@ -15,6 +17,7 @@ def test_all_variables_axds():
     assert df.equals(df_test)
 
 
+@pytest.mark.slow
 def test_all_variables_erddap():
     ioos = "http://erddap.sensors.ioos.us/erddap"
     df = odg.all_variables(ioos)
@@ -29,10 +32,12 @@ def test_all_variables_erddap():
     assert df.equals(df_test)
 
 
+@pytest.mark.slow
 def test_search_variables():
     assert "Salinity" in odg.search_variables("axds", "sal").index
 
 
+@pytest.mark.slow
 def test_check_variables():
     server = "http://erddap.sensors.ioos.us/erddap"
     vars = ["salinity", "sea_water_practical_salinity"]

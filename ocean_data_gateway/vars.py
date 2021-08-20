@@ -15,7 +15,7 @@ from joblib import Parallel, delayed
 import ocean_data_gateway as odg
 
 
-def count(url):
+def line_count(url):
     """Small helper function to count len(results) at url."""
     try:
         return len(pd.read_csv(url))
@@ -164,11 +164,11 @@ def all_variables(server, parallel=True):
             if not parallel:
                 counts = []
                 for url in df.URL:
-                    counts.append(count(url))
+                    counts.append(line_count(url))
             else:
                 num_cores = multiprocessing.cpu_count()
                 counts = Parallel(n_jobs=num_cores)(
-                    delayed(count)(url) for url in df.URL
+                    delayed(line_count)(url) for url in df.URL
                 )
             dfnew = pd.DataFrame()
             dfnew["variable"] = df["Category"]
