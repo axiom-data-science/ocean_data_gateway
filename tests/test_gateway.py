@@ -1,4 +1,5 @@
 import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 
 from make_test_files import make_local_netcdf
@@ -25,6 +26,11 @@ def test_units():
     assert ds.pint.quantify()
 
 
+def test_approach_default():
+    search = odg.Gateway(kw={})
+    assert search.kwargs_all['approach'] == 'region'
+
+
 def test_qc():
     """Test qc can return something with local test file."""
 
@@ -33,5 +39,6 @@ def test_qc():
         approach="stations", readers=odg.local, local={"filenames": filenames}
     )
     data.dataset_ids
+    assert isinstance(data.meta, pd.DataFrame)
     data[fname]
     assert (data.qc()[fname]["temperature_qc"] == np.ones(10)).all()
