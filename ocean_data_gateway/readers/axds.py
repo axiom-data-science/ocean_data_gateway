@@ -625,11 +625,14 @@ sources:
         saved to self._dataset_ids.
         """
 
-        if not hasattr(self, "_dataset_ids"):
+        if not hasattr(self, "_dataset_ids") or (len(self.variables) != self.num_variables):
             if self.catalog is not None:
                 self._dataset_ids = list(self.catalog)
             else:
                 self._dataset_ids = []
+
+            # update number of variables
+            self.num_variables = len(self.variables)
 
         return self._dataset_ids
 
@@ -862,6 +865,9 @@ class region(AxdsReader):
             # user is inputting specific reader variable names
             else:
                 odg.check_variables("axds", variables)
+            # record the number of variables so that a user can change it and
+            # the change can be compared.
+            self.num_variables = len(variables)
 
         self.variables = variables
 

@@ -291,17 +291,18 @@ class Gateway(Reader):
         A list of dataset_ids where each entry in the list corresponds to one source/reader, which in turn contains a list of dataset_ids.
         """
 
-        if not hasattr(self, "_dataset_ids"):
+        # if not hasattr(self, "_dataset_ids") or (len(self.variables) != self.num_variables):
 
-            dataset_ids = []
-            for source in self.sources:
+        dataset_ids = []
+        for source in self.sources:
 
-                dataset_ids.extend(source.dataset_ids)
+            dataset_ids.extend(source.dataset_ids)
                 # dataset_ids.append(source.dataset_ids)
 
-            self._dataset_ids = dataset_ids
+            # self._dataset_ids = dataset_ids
 
-        return self._dataset_ids
+        return dataset_ids
+        # return self._dataset_ids
 
     @property
     def meta(self):
