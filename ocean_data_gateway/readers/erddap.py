@@ -643,11 +643,15 @@ class region(ErddapReader):
 
         # make sure variables are on parameter list
         if variables is not None:
-            # first translate the input variable nicknames to variable names
-            # that are specific to the reader.
-            # USE DIFFERENT VARIABLE NAMES
-            variables = odg.select_variables(self.e.server, self.criteria, variables)
-            # odg.check_variables(self.e.server, variables)
+            # User is using criteria and variable nickname approach
+            if self.criteria and all(var in self.criteria for var in variables):
+                # first translate the input variable nicknames to variable names
+                # that are specific to the reader.
+                # USE DIFFERENT VARIABLE NAMES
+                variables = odg.select_variables(self.e.server, self.criteria, variables)
+            # user is inputting specific reader variable names
+            else:
+                odg.check_variables(self.e.server, variables)
         self.variables = variables
 
 

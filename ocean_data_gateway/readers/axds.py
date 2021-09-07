@@ -856,8 +856,12 @@ class region(AxdsReader):
 
         # make sure variables are on parameter list if platform2
         if (variables is not None) and (self.axds_type == "platform2"):
-            variables = odg.select_variables("axds", self.criteria, variables)
-            # odg.check_variables("axds", variables)
+            # User is using criteria and variable nickname approach
+            if self.criteria and all(var in self.criteria for var in variables):
+                variables = odg.select_variables("axds", self.criteria, variables)
+            # user is inputting specific reader variable names
+            else:
+                odg.check_variables("axds", variables)
 
         self.variables = variables
 

@@ -67,6 +67,10 @@ class Gateway(Reader):
             See odg.local.LocalReader for more input options.
         criteria
             DICT OR WEBADDRESS
+        var_def
+            The variable nicknames that are the keys in var_def are the
+            variables that will be used to narrow the scope of the dataset if QC
+            is run. MORE
 
         Notes
         -----
@@ -112,6 +116,22 @@ class Gateway(Reader):
             self.criteria = criteria
         else:
             self.criteria = None
+
+        # user-input variable definitions for QC
+        if 'var_def' in self.kwargs_all:
+            var_def = self.kwargs_all['var_def']
+            # link to nonlocal dictionary definition
+            if isinstance(var_def, str) and var_def[:4] == 'http':
+                var_def = odg.return_response(var_def)
+            self.var_def = var_def
+        else:
+            self.var_def = None
+
+        # if both criteria and var_def are input by user, make sure the keys
+        # in var_def are all available in criteria.
+        if self.criteria and self.var_def:
+            assertion = 'All variable keys in `var_def` must be available in `criteria`.'
+            assert all(elem in self.criteria for elem in self.var_def), assertion
 
         self.kwargs = kwargs
         self.sources
@@ -402,7 +422,7 @@ class Gateway(Reader):
         """
 
         assertion = 'Need to have custom criteria and variable information defined to run QC.'
-        assert (self.criteria and odg.var_def), assertion
+        assert (self.criteria and self.var_def), assertion
 
         if dataset_ids is None:
             data_ids = (
@@ -421,7 +441,7 @@ class Gateway(Reader):
             # which custom variable names are in dataset
             varnames = [
                 (cf_xarray.accessor._get_custom_criteria(dd, var), var)
-                for var in odg.var_def.keys()
+                for var in self.var_def.keys()
                 if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
             ]
             assert len(varnames) > 0, "no custom names matched in Dataset."
@@ -463,7 +483,7 @@ class Gateway(Reader):
             elif isinstance(dd, xr.Dataset):
                 # form of "temp": "degree_Celsius"
                 units_dict = {
-                    dd_varname: odg.var_def[cf_varname]["units"]
+                    dd_varname: self.var_def[cf_varname]["units"]
                     for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
                 }
                 # convert to conventional units
@@ -477,8 +497,8 @@ class Gateway(Reader):
                 qc_config = {
                     "qartod": {
                         "gross_range_test": {
-                            "fail_span": odg.var_def[cf_varname]["fail_span"],
-                            "suspect_span": odg.var_def[cf_varname]["suspect_span"],
+                            "fail_span": self.var_def[cf_varname]["fail_span"],
+                            "suspect_span": self.var_def[cf_varname]["suspect_span"],
                         },
                     }
                 }

@@ -87,7 +87,8 @@ keys_kwargs = [
     # "dataset_ids",
     "variables",
     "criteria",
-    "variables"
+    "variables",
+    "var_def"
 ]
 
 
@@ -102,17 +103,17 @@ keys_kwargs = [
 # Principle variable list. These variable names need to match those in the gist.
 # units
 # QARTOD numbers for variables
-var_def = {
-    "temp": {
-        "units": "degree_Celsius",
-        "fail_span": [-100, 100],
-        "suspect_span": [-10, 40],
-    },
-    "salt": {"units": "psu", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-    "u": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
-    "v": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
-    "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-3, 3]},
-}
+# var_def = {
+#     "temp": {
+#         "units": "degree_Celsius",
+#         "fail_span": [-100, 100],
+#         "suspect_span": [-10, 40],
+#     },
+#     "salt": {"units": "psu", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
+#     "u": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
+#     "v": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
+#     "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-3, 3]},
+# }
 
 # QARTOD defs
 qcdefs = {"4": "FAIL", "1": "GOOD", "9": "MISSING", "3": "SUSPECT", "2": "UNKNOWN"}
