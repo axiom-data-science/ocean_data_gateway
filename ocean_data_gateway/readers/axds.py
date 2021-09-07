@@ -5,7 +5,6 @@ Reader for Axiom databases.
 import hashlib
 import logging
 import os
-import re
 
 import fsspec
 import intake
@@ -15,6 +14,7 @@ import requests
 import xarray as xr
 
 import ocean_data_gateway as odg
+import cf_xarray
 
 from ocean_data_gateway import Reader
 
@@ -840,12 +840,24 @@ class region(AxdsReader):
         # check for lon/lat values and time
         self.kw = kw
 
+        # check for custom criteria to set up cf-xarray
+        if 'criteria' in kwargs:
+            criteria = kwargs['criteria']
+            # link to nonlocal dictionary definition
+            if isinstance(criteria, str) and criteria[:4] == 'http':
+                criteria = odg.return_response(criteria)
+            cf_xarray.set_options(custom_criteria=criteria)
+            self.criteria = criteria
+        else:
+            self.criteria = None
+
         if (variables is not None) and (not isinstance(variables, list)):
             variables = [variables]
 
         # make sure variables are on parameter list if platform2
         if (variables is not None) and (self.axds_type == "platform2"):
-            odg.check_variables("axds", variables)
+            variables = odg.select_variables("axds", self.criteria, variables)
+            # odg.check_variables("axds", variables)
 
         self.variables = variables
 

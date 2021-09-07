@@ -65,9 +65,12 @@ class Gateway(Reader):
             Dictionary of reader specifications. For example,
             `local={'filenames': filenames}` for a list of filenames.
             See odg.local.LocalReader for more input options.
+        criteria
+            DICT OR WEBADDRESS
 
         Notes
         -----
+        UPDATE
         To select search variables, input the variable names to each reader
         individually in the format `erddap={'variables': [list of variables]}`.
         Make sure that the variable names are correct for each individual
@@ -99,16 +102,16 @@ class Gateway(Reader):
         assertion = '`approach` has to be "region" or "stations"'
         assert self.kwargs_all["approach"] in ["region", "stations"], assertion
 
-        # if "kw" not in self.kwargs_all:
-        #     kw = {
-        #         "min_lon": -124.0,
-        #         "max_lon": -122.0,
-        #         "min_lat": 38.0,
-        #         "max_lat": 40.0,
-        #         "min_time": "2021-4-1",
-        #         "max_time": "2021-4-2",
-        #     }
-        #     self.kwargs_all["kw"] = kw
+        # check for custom criteria to set up cf-xarray
+        if 'criteria' in self.kwargs_all:
+            criteria = self.kwargs_all['criteria']
+            # link to nonlocal dictionary definition
+            if isinstance(criteria, str) and criteria[:4] == 'http':
+                criteria = odg.return_response(criteria)
+            cf_xarray.set_options(custom_criteria=criteria)
+            self.criteria = criteria
+        else:
+            self.criteria = None
 
         self.kwargs = kwargs
         self.sources
@@ -195,6 +198,9 @@ class Gateway(Reader):
                         variables_values = [variables_values]
                 #                     if len(reader_values) == variables_values:
                 #                         variables_values
+                # catch scenario where variables input to all readers at once
+                elif "variables" in self.kwargs_all:
+                    variables_values = [self.kwargs_all["variables"]] * len(reader_values)
                 else:
                     variables_values = [None] * len(reader_values)
 
@@ -394,6 +400,9 @@ class Gateway(Reader):
         functionality for custom variable names and easier to have
         recognizable units for variables with netcdf than csv.
         """
+
+        assertion = 'Need to have custom criteria and variable information defined to run QC.'
+        assert (self.criteria and odg.var_def), assertion
 
         if dataset_ids is None:
             data_ids = (

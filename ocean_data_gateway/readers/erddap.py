@@ -588,6 +588,7 @@ class region(ErddapReader):
       Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
     approach: string
         approach is defined as 'region' for this class.
+    CRITERIA
     """
 
     def __init__(self, kwargs):
@@ -604,6 +605,7 @@ class region(ErddapReader):
               `min_lat`, `max_lat`, `min_time`, `max_time`.
             * variables: string or list, optional
               Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
+            * CRITERIA
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
@@ -625,12 +627,27 @@ class region(ErddapReader):
         # check for lon/lat values and time
         self.kw = kw
 
+        # check for custom criteria to set up cf-xarray
+        if 'criteria' in kwargs:
+            criteria = kwargs['criteria']
+            # link to nonlocal dictionary definition
+            if isinstance(criteria, str) and criteria[:4] == 'http':
+                criteria = odg.return_response(criteria)
+            cf_xarray.set_options(custom_criteria=criteria)
+            self.criteria = criteria
+        else:
+            self.criteria = None
+
         if (variables is not None) and (not isinstance(variables, list)):
             variables = [variables]
 
         # make sure variables are on parameter list
         if variables is not None:
-            odg.check_variables(self.e.server, variables)
+            # first translate the input variable nicknames to variable names
+            # that are specific to the reader.
+            # USE DIFFERENT VARIABLE NAMES
+            variables = odg.select_variables(self.e.server, self.criteria, variables)
+            # odg.check_variables(self.e.server, variables)
         self.variables = variables
 
 

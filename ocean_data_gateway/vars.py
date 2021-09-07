@@ -424,3 +424,28 @@ def check_variables(server, variables, verbose=False):
 
     if condition and verbose:
         print("all variables are matches!")
+
+
+def select_variables(server, criteria, variables):
+    """Use variable criteria to choose from available variables.
+
+    Notes
+    -----
+    This uses logic from `cf-xarray`.
+
+    MORE DOCS
+    """
+
+    df = all_variables(server)
+
+    results = []
+    for key in variables:
+        if key in criteria:
+            for criterion, patterns in criteria[key].items():
+                results.extend(list(set([var for var in df.index if re.match(patterns, var)])))
+
+        # catch scenario that user input valid reader variable names
+        else:
+            check_variables(server, variables)
+            results = variables
+    return results
