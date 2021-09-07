@@ -625,14 +625,15 @@ sources:
         saved to self._dataset_ids.
         """
 
-        if not hasattr(self, "_dataset_ids") or (len(self.variables) != self.num_variables):
+        if not hasattr(self, "_dataset_ids") or (self.variables and (len(self.variables) != self.num_variables)):
             if self.catalog is not None:
                 self._dataset_ids = list(self.catalog)
             else:
                 self._dataset_ids = []
 
             # update number of variables
-            self.num_variables = len(self.variables)
+            if self.variables:
+                self.num_variables = len(self.variables)
 
         return self._dataset_ids
 
@@ -825,6 +826,8 @@ class region(AxdsReader):
                 `odg.check_variables('axds', variables)`.
               * 'layer_group': the variable name or names will be searched for
                 as a query so just do your best with the names and experiment.
+              * CRITERIA
+              * Var_def AMORE
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         ax_kwargs = {
@@ -868,6 +871,8 @@ class region(AxdsReader):
             # record the number of variables so that a user can change it and
             # the change can be compared.
             self.num_variables = len(variables)
+        else:
+            self.num_variables = 0
 
         self.variables = variables
 

@@ -10,6 +10,7 @@ import intake
 import pandas as pd
 
 import ocean_data_gateway as odg
+import cf_xarray
 
 from ocean_data_gateway import Reader
 
@@ -157,51 +158,30 @@ class LocalReader(Reader):
                     file_intake = intake.open_netcdf(filename)
                     data = file_intake.read()
                     coords = list(data.coords.keys())
-                    timekey = [
-                        coord
-                        for coord in coords
-                        if ("time" in data[coord].attrs.values())
-                        or ("T" in data[coord].attrs.values())
-                    ]
-                    if len(timekey) > 0:
-                        timekey = timekey[0]
-                        time_coverage_start = str(data[timekey].min().values)
-                        time_coverage_end = str(data[timekey].max().values)
+                    if 'T' in data.cf.get_valid_keys():
+                        time_coverage_start = str(data.cf['T'].min().values)
+                        time_coverage_end = str(data.cf['T'].max().values)
                     else:
                         time_coverage_start = ""
                         time_coverage_end = ""
-                    lonkey = [
-                        coord
-                        for coord in coords
-                        if ("lon" in data[coord].attrs.values())
-                        or ("X" in data[coord].attrs.values())
-                    ]
-                    if len(lonkey) > 0:
-                        lonkey = lonkey[0]
-                        geospatial_lon_min = float(data[lonkey].min())
-                        geospatial_lon_max = float(data[lonkey].max())
+                    if 'longitude' in data.cf.get_valid_keys():
+                        geospatial_lon_min = float(data.cf["longitude"].min())
+                        geospatial_lon_max = float(data.cf["longitude"].max())
                     else:
                         geospatial_lon_min = ""
                         geospatial_lon_max = ""
-                    latkey = [
-                        coord
-                        for coord in coords
-                        if ("lat" in data[coord].attrs.values())
-                        or ("Y" in data[coord].attrs.values())
-                    ]
-                    if len(latkey) > 0:
-                        latkey = latkey[0]
-                        geospatial_lat_min = float(data[latkey].min())
-                        geospatial_lat_max = float(data[latkey].max())
+                    if 'latitude' in data.cf.get_valid_keys():
+                        geospatial_lat_min = float(data.cf['latitude'].min())
+                        geospatial_lat_max = float(data.cf['latitude'].max())
                     else:
                         geospatial_lat_min = ""
                         geospatial_lat_max = ""
                     metadata = {
                         "coords": coords,
                         "variables": list(data.data_vars.keys()),
-                        "time_variable": timekey,
-                        "lon_variable": lonkey,
-                        "lat_variable": latkey,
+                        "time_variable": data.cf['T'].name,
+                        "lon_variable": data.cf['longitude'].name,
+                        "lat_variable": data.cf['latitude'].name,
                         "geospatial_lon_min": geospatial_lon_min,
                         "geospatial_lon_max": geospatial_lon_max,
                         "geospatial_lat_min": geospatial_lat_min,
@@ -329,7 +309,7 @@ class region(LocalReader):
       `min_lat`, `max_lat`, `min_time`, `max_time`.
     variables: string or list
       Variable names if you want to limit the search to those. This is currently
-      ignored.
+      not used.
     approach: string
         approach is defined as 'region' for this class.
     """
@@ -349,7 +329,7 @@ class region(LocalReader):
               data currently.
             * variables: string or list, optional
               Variable names if you want to limit the search to those. This is
-              not used to filter data currently.
+              not used.
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         lo_kwargs = {

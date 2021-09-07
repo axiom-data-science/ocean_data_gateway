@@ -5,6 +5,55 @@ import pytest
 
 import ocean_data_gateway as odg
 
+from make_test_files import make_local_netcdf
+
+
+# make sure local netcdf test file exists
+make_local_netcdf()
+fname = "test_local.nc"
+fullname = f"tests/{fname}"
+
+my_custom_criteria = {
+    "temp": {
+        "name": "(?i)temperature$"
+    },
+}
+
+var_def = {
+    "temp": {
+        "units": "degree_Celsius",
+        "fail_span": [-100, 100],
+        "suspect_span": [-10, 40],
+    },
+}
+
+
+def test_criteria_gateway():
+    """Test that nicknames and variable names get same results."""
+
+    filenames = fullname
+    data1 = odg.Gateway(
+        approach="stations", readers=odg.local, local={"filenames": filenames},
+        criteria=my_custom_criteria, var_def=var_def, variables='temp'
+    )
+    data2 = odg.Gateway(
+        approach="stations", readers=odg.local, local={"filenames": filenames},
+        variables='temp'
+    )
+
+
+
+
+def test_criteria_axds():
+    pass
+
+
+def test_criteria_erddap():
+    pass
+
+
+def test_variable_names_gateway():
+    pass
 
 @pytest.mark.slow
 def test_all_variables_axds():

@@ -218,7 +218,7 @@ class ErddapReader(Reader):
         The dataset_ids are found by querying the metadata through the ERDDAP server. Or, if running with `stations()` and input dataset_ids, they are simply set initially with those values.
         """
 
-        if not hasattr(self, "_dataset_ids") or (len(self.variables) != self.num_variables):
+        if not hasattr(self, "_dataset_ids") or (self.variables and (len(self.variables) != self.num_variables)):
 
             # This should be a region search
             if self.approach == "region":
@@ -297,7 +297,8 @@ class ErddapReader(Reader):
                 )
 
             # update number of variables
-            self.num_variables = len(self.variables)
+            if self.variables:
+                self.num_variables = len(self.variables)
 
         return self._dataset_ids
 
@@ -658,6 +659,8 @@ class region(ErddapReader):
             # record the number of variables so that a user can change it and
             # the change can be compared.
             self.num_variables = len(variables)
+        else:
+            self.num_variables = 0
         self.variables = variables
 
 

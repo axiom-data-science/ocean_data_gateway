@@ -265,11 +265,11 @@ class Gateway(Reader):
                         "variables": variables,
                     }
 
-                    # deal with dataset_ids separately
-                    args_in = {
-                        **args_in,
-                        "dataset_ids": dataset_ids,
-                    }
+                    # # deal with dataset_ids separately
+                    # args_in = {
+                    #     **args_in,
+                    #     "dataset_ids": dataset_ids,
+                    # }
 
                     if self.kwargs_all["approach"] == "region":
                         reader = source.region(args_in)
