@@ -91,29 +91,5 @@ keys_kwargs = [
     "var_def"
 ]
 
-
-# # For variable identification with cf-xarray
-# # custom_criteria to identify variables is saved here
-# # https://gist.github.com/kthyng/c3cc27de6b4449e1776ce79215d5e732
-# my_custom_criteria_gist = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/be8409927b8743d4856f553c5639fb82d5a34d6b/my_custom_criteria.py"
-# response = requests.get(my_custom_criteria_gist)
-# my_custom_criteria = ast.literal_eval(response.text)
-# cfxr.set_options(custom_criteria=my_custom_criteria)
-
-# Principle variable list. These variable names need to match those in the gist.
-# units
-# QARTOD numbers for variables
-# var_def = {
-#     "temp": {
-#         "units": "degree_Celsius",
-#         "fail_span": [-100, 100],
-#         "suspect_span": [-10, 40],
-#     },
-#     "salt": {"units": "psu", "fail_span": [-10, 60], "suspect_span": [-1, 45]},
-#     "u": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
-#     "v": {"units": "m/s", "fail_span": [-10, 10], "suspect_span": [-5, 5]},
-#     "ssh": {"units": "m", "fail_span": [-10, 10], "suspect_span": [-3, 3]},
-# }
-
 # QARTOD defs
 qcdefs = {"4": "FAIL", "1": "GOOD", "9": "MISSING", "3": "SUSPECT", "2": "UNKNOWN"}

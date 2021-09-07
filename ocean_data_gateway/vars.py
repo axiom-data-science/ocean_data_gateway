@@ -429,11 +429,28 @@ def check_variables(server, variables, verbose=False):
 def select_variables(server, criteria, variables):
     """Use variable criteria to choose from available variables.
 
+    Parameters
+    ----------
+    server: str
+        Information for the reader, as follows:
+        * For an ERDDAP reader, `server` should be the ERDDAP server
+          input as a string. For example, http://erddap.sensors.ioos.us/erddap.
+        * For the axds reader, `server` should just be 'axds'. Note that
+          the variable list is only valid for `axds_type=='platform2'`, not for
+          'layer_group'
+    criteria: dict, str
+        Custom criteria input by user to determine which variables to select.
+    variables: string, list
+        String or list of strings to compare against list of valid
+        variable names. They should be keys in `criteria`.
+
+    Returns
+    -------
+    Variables from server that match with inputs.
+
     Notes
     -----
     This uses logic from `cf-xarray`.
-
-    MORE DOCS
     """
 
     df = all_variables(server)

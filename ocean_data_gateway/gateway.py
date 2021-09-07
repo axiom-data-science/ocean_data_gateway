@@ -65,20 +65,40 @@ class Gateway(Reader):
             Dictionary of reader specifications. For example,
             `local={'filenames': filenames}` for a list of filenames.
             See odg.local.LocalReader for more input options.
-        criteria
-            DICT OR WEBADDRESS
-        var_def
-            The variable nicknames that are the keys in var_def are the
-            variables that will be used to narrow the scope of the dataset if QC
-            is run. MORE
+        criteria: dict, str, optional
+          A dictionary describing how to recognize variables by their name
+          and attributes with regular expressions to be used with
+          `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+          This is required for running QC in Gateway. For example:
+          ```
+          my_custom_criteria = {
+            "salt": {
+                "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+                "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+            },
+          }
+          ```
+        var_def: dict, optional
+          A dictionary with the same keys as criteria (criteria can have
+          more) that describes QC definitions and units. It should include
+          the variable units, fail_span, and suspect_span. For example:
+          ```
+          var_def = {
+            "salt": {"units": "psu", "fail_span": [-10, 60],
+                     "suspect_span": [-1, 45]},
+          }
+          ```
 
         Notes
         -----
-        UPDATE
         To select search variables, input the variable names to each reader
         individually in the format `erddap={'variables': [list of variables]}`.
         Make sure that the variable names are correct for each individual
         reader. Check individual reader docs for more information.
+
+        Alternatively, the user can input `criteria` and then input as variables
+        the nicknames provided in `criteria` for variable names. These should
+        then be input generally, not to an individual reader.
 
         Input keyword arguments that are not specific to one of the readers will be collected in local dictionary kwargs_all. These may include "approach", "parallel", "kw" containing the time and space region to search for, etc.
 
@@ -291,18 +311,12 @@ class Gateway(Reader):
         A list of dataset_ids where each entry in the list corresponds to one source/reader, which in turn contains a list of dataset_ids.
         """
 
-        # if not hasattr(self, "_dataset_ids") or (len(self.variables) != self.num_variables):
-
         dataset_ids = []
         for source in self.sources:
 
             dataset_ids.extend(source.dataset_ids)
-                # dataset_ids.append(source.dataset_ids)
-
-            # self._dataset_ids = dataset_ids
 
         return dataset_ids
-        # return self._dataset_ids
 
     @property
     def meta(self):
@@ -321,9 +335,6 @@ class Gateway(Reader):
 
         Different sources have different metadata, though certain attributes
         are always available.
-
-        TO DO: SEPARATE DATASOURCE FUNCTIONS INTO A PART THAT RETRIEVES THE
-        DATASET_IDS AND METADATA AND A PART THAT READS IN THE DATA.
         """
 
         if not hasattr(self, "_meta"):
@@ -397,7 +408,8 @@ class Gateway(Reader):
         This runs one IOOS QARTOD on data as a first order quality check.
         Only returns data that is quality checked.
 
-        Requires pint for unit handling.
+        Requires pint for unit handling. Requires user-input `criteria` and
+        `var_def` to run.
 
         This is slow if your data is both chunks of time and space, so this
         should first narrow by both as much as possible.

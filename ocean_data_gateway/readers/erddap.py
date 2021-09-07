@@ -215,7 +215,10 @@ class ErddapReader(Reader):
 
         Notes
         -----
-        The dataset_ids are found by querying the metadata through the ERDDAP server. Or, if running with `stations()` and input dataset_ids, they are simply set initially with those values.
+        The dataset_ids are found by querying the metadata through the ERDDAP server.
+
+        The number of dataset_ids can change if a variable is removed from the
+        list of variables and this is rerun.
         """
 
         if not hasattr(self, "_dataset_ids") or (self.variables and (len(self.variables) != self.num_variables)):
@@ -590,9 +593,35 @@ class region(ErddapReader):
       `min_lat`, `max_lat`, `min_time`, `max_time`.
     variables: string or list
       Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
+    criteria: dict, str, optional
+      A dictionary describing how to recognize variables by their name
+      and attributes with regular expressions to be used with
+      `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+      This is required for running QC in Gateway. For example:
+      ```
+      my_custom_criteria = {
+        "salt": {
+            "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+            "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+        },
+      }
+      ```
+    var_def: dict, optional
+      A dictionary with the same keys as criteria (criteria can have
+      more) that describes QC definitions and units. It should include
+      the variable units, fail_span, and suspect_span. For example:
+      ```
+      var_def = {
+        "salt": {"units": "psu", "fail_span": [-10, 60],
+                 "suspect_span": [-1, 45]},
+      }
+      ```
     approach: string
         approach is defined as 'region' for this class.
-    CRITERIA
+    num_variables: int
+        Number of variables stored in self.variables. This is set initially and
+        if self.variables is modified, this is updated accordingly. If
+        `variables is None`, `num_variables==0`.
     """
 
     def __init__(self, kwargs):
@@ -609,7 +638,32 @@ class region(ErddapReader):
               `min_lat`, `max_lat`, `min_time`, `max_time`.
             * variables: string or list, optional
               Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
-            * CRITERIA
+
+              Alternatively, if the user inputs criteria, variables can be a
+              list of the keys from criteria.
+            * criteria: dict, optional
+              A dictionary describing how to recognize variables by their name
+              and attributes with regular expressions to be used with
+              `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+              This is required for running QC in Gateway. For example:
+              ```
+              my_custom_criteria = {
+                "salt": {
+                    "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+                    "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+                },
+              }
+              ```
+            * var_def: dict, optional
+              A dictionary with the same keys as criteria (criteria can have
+              more) that describes QC definitions and units. It should include
+              the variable units, fail_span, and suspect_span. For example:
+              ```
+              var_def = {
+                "salt": {"units": "psu", "fail_span": [-10, 60],
+                         "suspect_span": [-1, 45]},
+              }
+              ```
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
@@ -651,8 +705,8 @@ class region(ErddapReader):
             if self.criteria and all(var in self.criteria for var in variables):
                 # first translate the input variable nicknames to variable names
                 # that are specific to the reader.
-                # USE DIFFERENT VARIABLE NAMES
                 variables = odg.select_variables(self.e.server, self.criteria, variables)
+
             # user is inputting specific reader variable names
             else:
                 odg.check_variables(self.e.server, variables)

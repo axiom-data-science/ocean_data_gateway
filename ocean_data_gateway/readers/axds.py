@@ -605,7 +605,6 @@ sources:
             # if we already know there aren't any dataset_ids
             # don't try to read catalog
             if not self.search_results == {}:
-                #             if (not self.dataset_ids == []) or (not self.search_results == {}):
                 catalog = intake.open_catalog(self.catalog_name)
             else:
                 catalog = None
@@ -620,12 +619,14 @@ sources:
         Notes
         -----
         The dataset_ids are read from the catalog, so the catalog is created
-        before this can happen, unless the dataset_ids were input from the
-        beginning of the call via `stations` in which case they are simply
-        saved to self._dataset_ids.
+        before this can happen.
+
+        The number of dataset_ids can change if a variable is removed from the
+        list of variables and this is rerun.
         """
 
-        if not hasattr(self, "_dataset_ids") or (self.variables and (len(self.variables) != self.num_variables)):
+        if not hasattr(self, "_dataset_ids") or \
+           (self.variables and (len(self.variables) != self.num_variables)):
             if self.catalog is not None:
                 self._dataset_ids = list(self.catalog)
             else:
@@ -803,8 +804,38 @@ class region(AxdsReader):
 
       * 'platform2': the variable name or names must be from the list available in `odg.all_variables('axds')` and pass the check in `odg.check_variables('axds', variables)`.
       * 'layer_group': the variable name or names will be searched for as a query so just do your best with the names and experiment.
+
+      Alternatively, if the user inputs criteria, variables can be a
+      list of the keys from criteria.
+    criteria: dict, str, optional
+      A dictionary describing how to recognize variables by their name
+      and attributes with regular expressions to be used with
+      `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+      This is required for running QC in Gateway. For example:
+      ```
+      my_custom_criteria = {
+        "salt": {
+            "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+            "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+        },
+      }
+      ```
+    var_def: dict, optional
+      A dictionary with the same keys as criteria (criteria can have
+      more) that describes QC definitions and units. It should include
+      the variable units, fail_span, and suspect_span. For example:
+      ```
+      var_def = {
+        "salt": {"units": "psu", "fail_span": [-10, 60],
+                 "suspect_span": [-1, 45]},
+      }
+      ```
     approach: string
         approach is defined as 'region' for this class.
+    num_variables: int
+        Number of variables stored in self.variables. This is set initially and
+        if self.variables is modified, this is updated accordingly. If
+        `variables is None`, `num_variables==0`.
     """
 
     def __init__(self, kwargs):
@@ -826,8 +857,32 @@ class region(AxdsReader):
                 `odg.check_variables('axds', variables)`.
               * 'layer_group': the variable name or names will be searched for
                 as a query so just do your best with the names and experiment.
-              * CRITERIA
-              * Var_def AMORE
+
+              Alternatively, if the user inputs criteria, variables can be a
+              list of the keys from criteria.
+            * criteria: dict, optional
+              A dictionary describing how to recognize variables by their name
+              and attributes with regular expressions to be used with
+              `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+              This is required for running QC in Gateway. For example:
+              ```
+              my_custom_criteria = {
+                "salt": {
+                    "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+                    "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+                },
+              }
+              ```
+            * var_def: dict, optional
+              A dictionary with the same keys as criteria (criteria can have
+              more) that describes QC definitions and units. It should include
+              the variable units, fail_span, and suspect_span. For example:
+              ```
+              var_def = {
+                "salt": {"units": "psu", "fail_span": [-10, 60],
+                         "suspect_span": [-1, 45]},
+              }
+              ```
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         ax_kwargs = {
@@ -865,6 +920,7 @@ class region(AxdsReader):
             # User is using criteria and variable nickname approach
             if self.criteria and all(var in self.criteria for var in variables):
                 variables = odg.select_variables("axds", self.criteria, variables)
+
             # user is inputting specific reader variable names
             else:
                 odg.check_variables("axds", variables)
