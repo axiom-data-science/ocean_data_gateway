@@ -27,6 +27,7 @@ kw = {
 }
 
 
+@pytest.mark.slow
 def test_criteria_local():
     """Test that can read in local criteria and var_def."""
 
@@ -40,6 +41,7 @@ def test_criteria_local():
     assert "sea_water_practical_salinity" in search.sources[0].variables
 
 
+@pytest.mark.slow
 def test_criteria_nonlocal():
     """Test that can read in nonlocal criteria and var_def."""
     criteria = "https://gist.githubusercontent.com/kthyng/c3cc27de6b4449e1776ce79215d5e732/raw/af448937e4896535e36ef6522df8460e8f928cd6/my_custom_criteria.py"
@@ -50,6 +52,7 @@ def test_criteria_nonlocal():
     assert "sea_water_practical_salinity" in search.sources[0].variables
 
 
+@pytest.mark.slow
 def test_criteria_gateway():
     """Test that nicknames and variable names get same results."""
 
@@ -73,6 +76,7 @@ def test_criteria_gateway():
     assert data2.sources[0].variables[0] in data1.sources[0].variables
 
 
+@pytest.mark.slow
 def test_criteria_axds():
     """Can input criteria directly to reader"""
 
@@ -88,6 +92,7 @@ def test_criteria_axds():
     assert search.variables
 
 
+@pytest.mark.slow
 def test_remove_variable():
     """Remove variable from list and update dataset_ids."""
 
