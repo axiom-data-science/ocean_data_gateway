@@ -39,8 +39,8 @@ class Gateway(Reader):
         Parameters
         ----------
         kw: dict
-          Contains space and time search constraints: `min_lon`, `max_lon`,
-          `min_lat`, `max_lat`, `min_time`, `max_time`.
+            Contains space and time search constraints: `min_lon`, `max_lon`,
+            `min_lat`, `max_lat`, `min_time`, `max_time`.
         approach: string
             approach is defined as 'stations' or 'region' depending on user
             choice.
