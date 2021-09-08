@@ -16,12 +16,14 @@ from pathlib import Path  # noqa: E402
 import requests  # noqa: E402
 
 
-from .utils import (
+from .utils import (  # isort:skip  # noqa: E402, F401
     Reader,
     load_data,
     resample_like,
     return_response,
-)  # isort:skip  # noqa: E402, F401
+)
+
+
 from .gateway import Gateway  # isort:skip  # noqa: E402, F401
 from .readers import axds, erddap, local  # isort:skip  # noqa: E402
 
