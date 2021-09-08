@@ -13,6 +13,7 @@ Welcome to ocean_data_gateway's documentation!
    details
    utils
    api
+   alternative_variable
 
 
 
