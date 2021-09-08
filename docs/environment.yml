@@ -1,6 +1,7 @@
 name: ocean_data_gateway_docs
 channels:
   - conda-forge
+  - defaults
 dependencies:
    - python=3.8
    # If your docs code examples depend on other packages add them here
@@ -8,7 +9,7 @@ dependencies:
    # so don't need all those packages
    # - cf_xarray
    # - ipython
-   - jupyter
+   # - jupyter
    # - jupyterlab
    - ocean_data_gateway
    # These are needed for the docs themselves
