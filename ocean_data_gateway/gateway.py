@@ -39,8 +39,8 @@ class Gateway(Reader):
         Parameters
         ----------
         kw: dict
-          Contains space and time search constraints: `min_lon`, `max_lon`,
-          `min_lat`, `max_lat`, `min_time`, `max_time`.
+            Contains space and time search constraints: `min_lon`, `max_lon`,
+            `min_lat`, `max_lat`, `min_time`, `max_time`.
         approach: string
             approach is defined as 'stations' or 'region' depending on user
             choice.
@@ -65,6 +65,29 @@ class Gateway(Reader):
             Dictionary of reader specifications. For example,
             `local={'filenames': filenames}` for a list of filenames.
             See odg.local.LocalReader for more input options.
+        criteria: dict, str, optional
+          A dictionary describing how to recognize variables by their name
+          and attributes with regular expressions to be used with
+          `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+          This is required for running QC in Gateway. For example:
+          ```
+          my_custom_criteria = {
+            "salt": {
+                "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+                "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+            },
+          }
+          ```
+        var_def: dict, optional
+          A dictionary with the same keys as criteria (criteria can have
+          more) that describes QC definitions and units. It should include
+          the variable units, fail_span, and suspect_span. For example:
+          ```
+          var_def = {
+            "salt": {"units": "psu", "fail_span": [-10, 60],
+                     "suspect_span": [-1, 45]},
+          }
+          ```
 
         Notes
         -----
@@ -72,6 +95,10 @@ class Gateway(Reader):
         individually in the format `erddap={'variables': [list of variables]}`.
         Make sure that the variable names are correct for each individual
         reader. Check individual reader docs for more information.
+
+        Alternatively, the user can input `criteria` and then input as variables
+        the nicknames provided in `criteria` for variable names. These should
+        then be input generally, not to an individual reader.
 
         Input keyword arguments that are not specific to one of the readers will be collected in local dictionary kwargs_all. These may include "approach", "parallel", "kw" containing the time and space region to search for, etc.
 
@@ -99,16 +126,34 @@ class Gateway(Reader):
         assertion = '`approach` has to be "region" or "stations"'
         assert self.kwargs_all["approach"] in ["region", "stations"], assertion
 
-        # if "kw" not in self.kwargs_all:
-        #     kw = {
-        #         "min_lon": -124.0,
-        #         "max_lon": -122.0,
-        #         "min_lat": 38.0,
-        #         "max_lat": 40.0,
-        #         "min_time": "2021-4-1",
-        #         "max_time": "2021-4-2",
-        #     }
-        #     self.kwargs_all["kw"] = kw
+        # check for custom criteria to set up cf-xarray
+        if "criteria" in self.kwargs_all:
+            criteria = self.kwargs_all["criteria"]
+            # link to nonlocal dictionary definition
+            if isinstance(criteria, str) and criteria[:4] == "http":
+                criteria = odg.return_response(criteria)
+            cf_xarray.set_options(custom_criteria=criteria)
+            self.criteria = criteria
+        else:
+            self.criteria = None
+
+        # user-input variable definitions for QC
+        if "var_def" in self.kwargs_all:
+            var_def = self.kwargs_all["var_def"]
+            # link to nonlocal dictionary definition
+            if isinstance(var_def, str) and var_def[:4] == "http":
+                var_def = odg.return_response(var_def)
+            self.var_def = var_def
+        else:
+            self.var_def = None
+
+        # if both criteria and var_def are input by user, make sure the keys
+        # in var_def are all available in criteria.
+        if self.criteria and self.var_def:
+            assertion = (
+                "All variable keys in `var_def` must be available in `criteria`."
+            )
+            assert all(elem in self.criteria for elem in self.var_def), assertion
 
         self.kwargs = kwargs
         self.sources
@@ -195,6 +240,11 @@ class Gateway(Reader):
                         variables_values = [variables_values]
                 #                     if len(reader_values) == variables_values:
                 #                         variables_values
+                # catch scenario where variables input to all readers at once
+                elif "variables" in self.kwargs_all:
+                    variables_values = [self.kwargs_all["variables"]] * len(
+                        reader_values
+                    )
                 else:
                     variables_values = [None] * len(reader_values)
 
@@ -239,11 +289,11 @@ class Gateway(Reader):
                         "variables": variables,
                     }
 
-                    # deal with dataset_ids separately
-                    args_in = {
-                        **args_in,
-                        "dataset_ids": dataset_ids,
-                    }
+                    # # deal with dataset_ids separately
+                    # args_in = {
+                    #     **args_in,
+                    #     "dataset_ids": dataset_ids,
+                    # }
 
                     if self.kwargs_all["approach"] == "region":
                         reader = source.region(args_in)
@@ -265,17 +315,12 @@ class Gateway(Reader):
         A list of dataset_ids where each entry in the list corresponds to one source/reader, which in turn contains a list of dataset_ids.
         """
 
-        if not hasattr(self, "_dataset_ids"):
+        dataset_ids = []
+        for source in self.sources:
 
-            dataset_ids = []
-            for source in self.sources:
+            dataset_ids.extend(source.dataset_ids)
 
-                dataset_ids.extend(source.dataset_ids)
-                # dataset_ids.append(source.dataset_ids)
-
-            self._dataset_ids = dataset_ids
-
-        return self._dataset_ids
+        return dataset_ids
 
     @property
     def meta(self):
@@ -294,9 +339,6 @@ class Gateway(Reader):
 
         Different sources have different metadata, though certain attributes
         are always available.
-
-        TO DO: SEPARATE DATASOURCE FUNCTIONS INTO A PART THAT RETRIEVES THE
-        DATASET_IDS AND METADATA AND A PART THAT READS IN THE DATA.
         """
 
         if not hasattr(self, "_meta"):
@@ -370,7 +412,8 @@ class Gateway(Reader):
         This runs one IOOS QARTOD on data as a first order quality check.
         Only returns data that is quality checked.
 
-        Requires pint for unit handling.
+        Requires pint for unit handling. Requires user-input `criteria` and
+        `var_def` to run.
 
         This is slow if your data is both chunks of time and space, so this
         should first narrow by both as much as possible.
@@ -395,6 +438,11 @@ class Gateway(Reader):
         recognizable units for variables with netcdf than csv.
         """
 
+        assertion = (
+            "Need to have custom criteria and variable information defined to run QC."
+        )
+        assert self.criteria and self.var_def, assertion
+
         if dataset_ids is None:
             data_ids = (
                 self.keys()
@@ -412,7 +460,7 @@ class Gateway(Reader):
             # which custom variable names are in dataset
             varnames = [
                 (cf_xarray.accessor._get_custom_criteria(dd, var), var)
-                for var in odg.var_def.keys()
+                for var in self.var_def.keys()
                 if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
             ]
             assert len(varnames) > 0, "no custom names matched in Dataset."
@@ -454,7 +502,7 @@ class Gateway(Reader):
             elif isinstance(dd, xr.Dataset):
                 # form of "temp": "degree_Celsius"
                 units_dict = {
-                    dd_varname: odg.var_def[cf_varname]["units"]
+                    dd_varname: self.var_def[cf_varname]["units"]
                     for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
                 }
                 # convert to conventional units
@@ -468,8 +516,8 @@ class Gateway(Reader):
                 qc_config = {
                     "qartod": {
                         "gross_range_test": {
-                            "fail_span": odg.var_def[cf_varname]["fail_span"],
-                            "suspect_span": odg.var_def[cf_varname]["suspect_span"],
+                            "fail_span": self.var_def[cf_varname]["fail_span"],
+                            "suspect_span": self.var_def[cf_varname]["suspect_span"],
                         },
                     }
                 }

@@ -424,3 +424,47 @@ def check_variables(server, variables, verbose=False):
 
     if condition and verbose:
         print("all variables are matches!")
+
+
+def select_variables(server, criteria, variables):
+    """Use variable criteria to choose from available variables.
+
+    Parameters
+    ----------
+    server: str
+        Information for the reader, as follows:
+        * For an ERDDAP reader, `server` should be the ERDDAP server
+          input as a string. For example, http://erddap.sensors.ioos.us/erddap.
+        * For the axds reader, `server` should just be 'axds'. Note that
+          the variable list is only valid for `axds_type=='platform2'`, not for
+          'layer_group'
+    criteria: dict, str
+        Custom criteria input by user to determine which variables to select.
+    variables: string, list
+        String or list of strings to compare against list of valid
+        variable names. They should be keys in `criteria`.
+
+    Returns
+    -------
+    Variables from server that match with inputs.
+
+    Notes
+    -----
+    This uses logic from `cf-xarray`.
+    """
+
+    df = all_variables(server)
+
+    results = []
+    for key in variables:
+        if key in criteria:
+            for criterion, patterns in criteria[key].items():
+                results.extend(
+                    list(set([var for var in df.index if re.match(patterns, var)]))
+                )
+
+        # catch scenario that user input valid reader variable names
+        else:
+            check_variables(server, variables)
+            results = variables
+    return results

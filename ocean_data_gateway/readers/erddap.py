@@ -215,10 +215,15 @@ class ErddapReader(Reader):
 
         Notes
         -----
-        The dataset_ids are found by querying the metadata through the ERDDAP server. Or, if running with `stations()` and input dataset_ids, they are simply set initially with those values.
+        The dataset_ids are found by querying the metadata through the ERDDAP server.
+
+        The number of dataset_ids can change if a variable is removed from the
+        list of variables and this is rerun.
         """
 
-        if not hasattr(self, "_dataset_ids"):
+        if not hasattr(self, "_dataset_ids") or (
+            self.variables and (len(self.variables) != self.num_variables)
+        ):
 
             # This should be a region search
             if self.approach == "region":
@@ -295,6 +300,10 @@ class ErddapReader(Reader):
                 logger.warning(
                     "Neither stations nor region approach were used in function dataset_ids."
                 )
+
+            # update number of variables
+            if self.variables:
+                self.num_variables = len(self.variables)
 
         return self._dataset_ids
 
@@ -586,8 +595,35 @@ class region(ErddapReader):
       `min_lat`, `max_lat`, `min_time`, `max_time`.
     variables: string or list
       Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
+    criteria: dict, str, optional
+      A dictionary describing how to recognize variables by their name
+      and attributes with regular expressions to be used with
+      `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+      This is required for running QC in Gateway. For example:
+      ```
+      my_custom_criteria = {
+        "salt": {
+            "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+            "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+        },
+      }
+      ```
+    var_def: dict, optional
+      A dictionary with the same keys as criteria (criteria can have
+      more) that describes QC definitions and units. It should include
+      the variable units, fail_span, and suspect_span. For example:
+      ```
+      var_def = {
+        "salt": {"units": "psu", "fail_span": [-10, 60],
+                 "suspect_span": [-1, 45]},
+      }
+      ```
     approach: string
         approach is defined as 'region' for this class.
+    num_variables: int
+        Number of variables stored in self.variables. This is set initially and
+        if self.variables is modified, this is updated accordingly. If
+        `variables is None`, `num_variables==0`.
     """
 
     def __init__(self, kwargs):
@@ -604,6 +640,32 @@ class region(ErddapReader):
               `min_lat`, `max_lat`, `min_time`, `max_time`.
             * variables: string or list, optional
               Variable names if you want to limit the search to those. The variable name or names must be from the list available in `odg.all_variables(server)` for the specific ERDDAP server and pass the check in `odg.check_variables(server, variables)`.
+
+              Alternatively, if the user inputs criteria, variables can be a
+              list of the keys from criteria.
+            * criteria: dict, optional
+              A dictionary describing how to recognize variables by their name
+              and attributes with regular expressions to be used with
+              `cf-xarray`. It can be local or a URL point to a nonlocal gist.
+              This is required for running QC in Gateway. For example:
+              ```
+              my_custom_criteria = {
+                "salt": {
+                    "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+                    "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
+                },
+              }
+              ```
+            * var_def: dict, optional
+              A dictionary with the same keys as criteria (criteria can have
+              more) that describes QC definitions and units. It should include
+              the variable units, fail_span, and suspect_span. For example:
+              ```
+              var_def = {
+                "salt": {"units": "psu", "fail_span": [-10, 60],
+                         "suspect_span": [-1, 45]},
+              }
+              ```
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
@@ -625,12 +687,38 @@ class region(ErddapReader):
         # check for lon/lat values and time
         self.kw = kw
 
+        # check for custom criteria to set up cf-xarray
+        if "criteria" in kwargs:
+            criteria = kwargs["criteria"]
+            # link to nonlocal dictionary definition
+            if isinstance(criteria, str) and criteria[:4] == "http":
+                criteria = odg.return_response(criteria)
+            cf_xarray.set_options(custom_criteria=criteria)
+            self.criteria = criteria
+        else:
+            self.criteria = None
+
         if (variables is not None) and (not isinstance(variables, list)):
             variables = [variables]
 
         # make sure variables are on parameter list
         if variables is not None:
-            odg.check_variables(self.e.server, variables)
+            # User is using criteria and variable nickname approach
+            if self.criteria and all(var in self.criteria for var in variables):
+                # first translate the input variable nicknames to variable names
+                # that are specific to the reader.
+                variables = odg.select_variables(
+                    self.e.server, self.criteria, variables
+                )
+
+            # user is inputting specific reader variable names
+            else:
+                odg.check_variables(self.e.server, variables)
+            # record the number of variables so that a user can change it and
+            # the change can be compared.
+            self.num_variables = len(variables)
+        else:
+            self.num_variables = 0
         self.variables = variables
 
 

@@ -17,6 +17,16 @@ Your gateway to ocean data.
 
 ## Installation
 
+Install the package plus its requirements from PyPI with
+``` bash
+$ pip install ocean_data_gateway
+```
+
+or from `conda-forge` with
+``` bash
+$ conda install -c conda-forge ocean_data_gateway
+```
+
 Clone the repo:
 ``` bash
 $ git clone https://github.com/axiom-data-science/ocean_data_gateway.git
@@ -40,9 +50,4 @@ $ conda install --file requirements-dev.txt
 To then check code before committing and pushing it to github, locally run
 ``` bash
 $ pre-commit run --all-files
-```
-
-Alternatively, you can just install the package plus its requirements from PyPI with
-``` bash
-$ pip install ocean_data_gateway
 ```
