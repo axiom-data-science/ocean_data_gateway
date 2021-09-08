@@ -6,10 +6,10 @@ dependencies:
    # If your docs code examples depend on other packages add them here
    # But docs that are notebooks are not rerun in the doc-making process
    # so don't need all those packages
-   - cf_xarray
-   - ipython
+   # - cf_xarray
+   # - ipython
    - jupyter
-   - jupyterlab
+   # - jupyterlab
    - ocean_data_gateway
    # These are needed for the docs themselves
    - numpydoc
