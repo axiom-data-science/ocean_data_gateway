@@ -1,7 +1,7 @@
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
-import xarray as xr  # noqa: E402
 import pytest
+import xarray as xr  # noqa: E402
 
 from make_test_files import make_local_netcdf
 
@@ -20,9 +20,7 @@ fname = "test_local.nc"
 fullname = f"tests/{fname}"
 
 my_custom_criteria = {
-    "temp": {
-        "name": "(?i)temperature$"
-    },
+    "temp": {"name": "(?i)temperature$"},
 }
 
 var_def = {
@@ -51,8 +49,11 @@ def test_qc():
 
     filenames = fullname
     data = odg.Gateway(
-        approach="stations", readers=odg.local, local={"filenames": filenames},
-        criteria=my_custom_criteria, var_def=var_def
+        approach="stations",
+        readers=odg.local,
+        local={"filenames": filenames},
+        criteria=my_custom_criteria,
+        var_def=var_def,
     )
     data.dataset_ids
     assert isinstance(data.meta, pd.DataFrame)

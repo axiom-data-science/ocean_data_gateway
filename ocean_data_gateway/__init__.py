@@ -16,7 +16,12 @@ from pathlib import Path  # noqa: E402
 import requests  # noqa: E402
 
 
-from .utils import Reader, load_data, resample_like, return_response  # isort:skip  # noqa: E402, F401
+from .utils import (
+    Reader,
+    load_data,
+    resample_like,
+    return_response,
+)  # isort:skip  # noqa: E402, F401
 from .gateway import Gateway  # isort:skip  # noqa: E402, F401
 from .readers import axds, erddap, local  # isort:skip  # noqa: E402
 
@@ -24,7 +29,7 @@ from .vars import (  # isort:skip  # noqa: F401, E402
     all_variables,
     check_variables,
     search_variables,
-    select_variables
+    select_variables,
 )
 
 try:
@@ -88,7 +93,7 @@ keys_kwargs = [
     "variables",
     "criteria",
     "variables",
-    "var_def"
+    "var_def",
 ]
 
 # QARTOD defs

@@ -6,6 +6,7 @@ import hashlib
 import logging
 import os
 
+import cf_xarray
 import fsspec
 import intake
 import numpy as np
@@ -14,7 +15,6 @@ import requests
 import xarray as xr
 
 import ocean_data_gateway as odg
-import cf_xarray
 
 from ocean_data_gateway import Reader
 
@@ -625,8 +625,9 @@ sources:
         list of variables and this is rerun.
         """
 
-        if not hasattr(self, "_dataset_ids") or \
-           (self.variables and (len(self.variables) != self.num_variables)):
+        if not hasattr(self, "_dataset_ids") or (
+            self.variables and (len(self.variables) != self.num_variables)
+        ):
             if self.catalog is not None:
                 self._dataset_ids = list(self.catalog)
             else:
@@ -902,10 +903,10 @@ class region(AxdsReader):
         self.kw = kw
 
         # check for custom criteria to set up cf-xarray
-        if 'criteria' in kwargs:
-            criteria = kwargs['criteria']
+        if "criteria" in kwargs:
+            criteria = kwargs["criteria"]
             # link to nonlocal dictionary definition
-            if isinstance(criteria, str) and criteria[:4] == 'http':
+            if isinstance(criteria, str) and criteria[:4] == "http":
                 criteria = odg.return_response(criteria)
             cf_xarray.set_options(custom_criteria=criteria)
             self.criteria = criteria

@@ -127,10 +127,10 @@ class Gateway(Reader):
         assert self.kwargs_all["approach"] in ["region", "stations"], assertion
 
         # check for custom criteria to set up cf-xarray
-        if 'criteria' in self.kwargs_all:
-            criteria = self.kwargs_all['criteria']
+        if "criteria" in self.kwargs_all:
+            criteria = self.kwargs_all["criteria"]
             # link to nonlocal dictionary definition
-            if isinstance(criteria, str) and criteria[:4] == 'http':
+            if isinstance(criteria, str) and criteria[:4] == "http":
                 criteria = odg.return_response(criteria)
             cf_xarray.set_options(custom_criteria=criteria)
             self.criteria = criteria
@@ -138,10 +138,10 @@ class Gateway(Reader):
             self.criteria = None
 
         # user-input variable definitions for QC
-        if 'var_def' in self.kwargs_all:
-            var_def = self.kwargs_all['var_def']
+        if "var_def" in self.kwargs_all:
+            var_def = self.kwargs_all["var_def"]
             # link to nonlocal dictionary definition
-            if isinstance(var_def, str) and var_def[:4] == 'http':
+            if isinstance(var_def, str) and var_def[:4] == "http":
                 var_def = odg.return_response(var_def)
             self.var_def = var_def
         else:
@@ -150,7 +150,9 @@ class Gateway(Reader):
         # if both criteria and var_def are input by user, make sure the keys
         # in var_def are all available in criteria.
         if self.criteria and self.var_def:
-            assertion = 'All variable keys in `var_def` must be available in `criteria`.'
+            assertion = (
+                "All variable keys in `var_def` must be available in `criteria`."
+            )
             assert all(elem in self.criteria for elem in self.var_def), assertion
 
         self.kwargs = kwargs
@@ -240,7 +242,9 @@ class Gateway(Reader):
                 #                         variables_values
                 # catch scenario where variables input to all readers at once
                 elif "variables" in self.kwargs_all:
-                    variables_values = [self.kwargs_all["variables"]] * len(reader_values)
+                    variables_values = [self.kwargs_all["variables"]] * len(
+                        reader_values
+                    )
                 else:
                     variables_values = [None] * len(reader_values)
 
@@ -434,8 +438,10 @@ class Gateway(Reader):
         recognizable units for variables with netcdf than csv.
         """
 
-        assertion = 'Need to have custom criteria and variable information defined to run QC.'
-        assert (self.criteria and self.var_def), assertion
+        assertion = (
+            "Need to have custom criteria and variable information defined to run QC."
+        )
+        assert self.criteria and self.var_def, assertion
 
         if dataset_ids is None:
             data_ids = (

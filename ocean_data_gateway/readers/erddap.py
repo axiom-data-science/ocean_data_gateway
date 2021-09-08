@@ -221,7 +221,9 @@ class ErddapReader(Reader):
         list of variables and this is rerun.
         """
 
-        if not hasattr(self, "_dataset_ids") or (self.variables and (len(self.variables) != self.num_variables)):
+        if not hasattr(self, "_dataset_ids") or (
+            self.variables and (len(self.variables) != self.num_variables)
+        ):
 
             # This should be a region search
             if self.approach == "region":
@@ -686,10 +688,10 @@ class region(ErddapReader):
         self.kw = kw
 
         # check for custom criteria to set up cf-xarray
-        if 'criteria' in kwargs:
-            criteria = kwargs['criteria']
+        if "criteria" in kwargs:
+            criteria = kwargs["criteria"]
             # link to nonlocal dictionary definition
-            if isinstance(criteria, str) and criteria[:4] == 'http':
+            if isinstance(criteria, str) and criteria[:4] == "http":
                 criteria = odg.return_response(criteria)
             cf_xarray.set_options(custom_criteria=criteria)
             self.criteria = criteria
@@ -705,7 +707,9 @@ class region(ErddapReader):
             if self.criteria and all(var in self.criteria for var in variables):
                 # first translate the input variable nicknames to variable names
                 # that are specific to the reader.
-                variables = odg.select_variables(self.e.server, self.criteria, variables)
+                variables = odg.select_variables(
+                    self.e.server, self.criteria, variables
+                )
 
             # user is inputting specific reader variable names
             else:

@@ -6,11 +6,11 @@ import hashlib
 import logging
 import os
 
+import cf_xarray
 import intake
 import pandas as pd
 
 import ocean_data_gateway as odg
-import cf_xarray
 
 from ocean_data_gateway import Reader
 
@@ -158,30 +158,30 @@ class LocalReader(Reader):
                     file_intake = intake.open_netcdf(filename)
                     data = file_intake.read()
                     coords = list(data.coords.keys())
-                    if 'T' in data.cf.get_valid_keys():
-                        time_coverage_start = str(data.cf['T'].min().values)
-                        time_coverage_end = str(data.cf['T'].max().values)
+                    if "T" in data.cf.get_valid_keys():
+                        time_coverage_start = str(data.cf["T"].min().values)
+                        time_coverage_end = str(data.cf["T"].max().values)
                     else:
                         time_coverage_start = ""
                         time_coverage_end = ""
-                    if 'longitude' in data.cf.get_valid_keys():
+                    if "longitude" in data.cf.get_valid_keys():
                         geospatial_lon_min = float(data.cf["longitude"].min())
                         geospatial_lon_max = float(data.cf["longitude"].max())
                     else:
                         geospatial_lon_min = ""
                         geospatial_lon_max = ""
-                    if 'latitude' in data.cf.get_valid_keys():
-                        geospatial_lat_min = float(data.cf['latitude'].min())
-                        geospatial_lat_max = float(data.cf['latitude'].max())
+                    if "latitude" in data.cf.get_valid_keys():
+                        geospatial_lat_min = float(data.cf["latitude"].min())
+                        geospatial_lat_max = float(data.cf["latitude"].max())
                     else:
                         geospatial_lat_min = ""
                         geospatial_lat_max = ""
                     metadata = {
                         "coords": coords,
                         "variables": list(data.data_vars.keys()),
-                        "time_variable": data.cf['T'].name,
-                        "lon_variable": data.cf['longitude'].name,
-                        "lat_variable": data.cf['latitude'].name,
+                        "time_variable": data.cf["T"].name,
+                        "lon_variable": data.cf["longitude"].name,
+                        "lat_variable": data.cf["latitude"].name,
                         "geospatial_lon_min": geospatial_lon_min,
                         "geospatial_lon_max": geospatial_lon_max,
                         "geospatial_lat_min": geospatial_lat_min,

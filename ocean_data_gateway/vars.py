@@ -459,7 +459,9 @@ def select_variables(server, criteria, variables):
     for key in variables:
         if key in criteria:
             for criterion, patterns in criteria[key].items():
-                results.extend(list(set([var for var in df.index if re.match(patterns, var)])))
+                results.extend(
+                    list(set([var for var in df.index if re.match(patterns, var)]))
+                )
 
         # catch scenario that user input valid reader variable names
         else:
