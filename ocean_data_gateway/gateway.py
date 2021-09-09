@@ -350,7 +350,7 @@ class Gateway(Reader):
 
             # self._meta = meta
             # merge metadata into one DataFrame
-            self._meta = pd.concat(meta, axis=0, join='outer')
+            self._meta = pd.concat(meta, axis=0, join="outer")
 
         return self._meta
 
