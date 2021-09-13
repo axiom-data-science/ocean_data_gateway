@@ -96,6 +96,7 @@ keys_kwargs = [
     "criteria",
     "variables",
     "var_def",
+    "skip_units",
 ]
 
 # QARTOD defs
