@@ -490,7 +490,7 @@ class Gateway(Reader):
 
             # subset to just the boem or requested variables for each df or ds
             if isinstance(dd, pd.DataFrame):
-                dd2 = dd[list(varnames.values())]
+                dd2 = dd[list(varnames)]
             elif isinstance(dd, xr.Dataset):
                 dd2 = dd.cf[cf_varnames]
                 # dd2 = dd[varnames]  # equivalent
