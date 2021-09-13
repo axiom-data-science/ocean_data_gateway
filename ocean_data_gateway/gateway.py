@@ -406,7 +406,7 @@ class Gateway(Reader):
 
         return self._data
 
-    def qc(self, dataset_ids=None, verbose=False):
+    def qc(self, dataset_ids=None, verbose=False, skip_units=False):
         """Light quality check on data.
 
         This runs one IOOS QARTOD on data as a first order quality check.
@@ -425,6 +425,9 @@ class Gateway(Reader):
             provided, data will be read in for all `self.keys()`.
         verbose: boolean, optional
             If True, report summary statistics on QC flag distribution in datasets.
+        skip_units: boolean, optional
+            If True, do not interpret or alter units and assume the data is in
+            the units described in var_def already.
 
         Returns
         -------
@@ -456,19 +459,31 @@ class Gateway(Reader):
         for data_id in data_ids:
             # access the Dataset
             dd = self[data_id]
-
             # which custom variable names are in dataset
-            varnames = [
-                (cf_xarray.accessor._get_custom_criteria(dd, var), var)
-                for var in self.var_def.keys()
-                if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
-            ]
-            assert len(varnames) > 0, "no custom names matched in Dataset."
             # dd_varnames are the variable names in the Dataset dd
             # cf_varnames are the custom names we can use to refer to the
             # variables through cf-xarray
-            dd_varnames, cf_varnames = zip(*varnames)
-            dd_varnames = sum(dd_varnames, [])
+            if isinstance(dd, pd.DataFrame):
+                varnames, cf_varnames = [], []
+                for var in self.var_def.keys():
+                    try:
+                        varname = dd.cf[var].name
+                        varnames.append(varname)
+                        cf_varnames.append(var)
+                    except:
+                        pass
+            elif isinstance(dd, xr.Dataset):
+                varnames = [
+                    (cf_xarray.accessor._get_custom_criteria(dd, var), var)
+                    for var in self.var_def.keys()
+                    if len(cf_xarray.accessor._get_custom_criteria(dd, var)) > 0
+                ]
+            assert len(varnames) > 0, "no custom names matched in Dataset."
+            if isinstance(dd, pd.DataFrame):
+                dd_varnames = varnames.copy()
+            elif isinstance(dd, xr.Dataset):
+                dd_varnames, cf_varnames = zip(*varnames)
+                dd_varnames = sum(dd_varnames, [])
             assert len(dd_varnames) == len(
                 cf_varnames
             ), "looks like multiple variables might have been identified for a custom variable name"
@@ -480,35 +495,40 @@ class Gateway(Reader):
                 dd2 = dd.cf[cf_varnames]
                 # dd2 = dd[varnames]  # equivalent
 
-            # Preprocess to change salinity units away from 1e-3
-            if isinstance(dd, pd.DataFrame):
-                # this replaces units in the 2nd column level of 1e-3 with psu
-                new_levs = [
-                    "psu" if col == "1e-3" else col for col in dd2.columns.levels[1]
-                ]
-                dd2.columns.set_levels(new_levs, level=1, inplace=True)
-            elif isinstance(dd, xr.Dataset):
-                for Var in dd2.data_vars:
-                    if "units" in dd2[Var].attrs and dd2[Var].attrs["units"] == "1e-3":
-                        dd2[Var].attrs["units"] = "psu"
-            # run pint quantify on each data structure
-            dd2 = dd2.pint.quantify()
-            # dd2 = dd2.pint.quantify(level=-1)
+            if not skip_units:
 
-            # go through each variable by name to make sure in correct units
-            # have to do this in separate loop so that can dequantify afterward
-            if isinstance(dd, pd.DataFrame):
-                print("NOT IMPLEMENTED FOR DATAFRAME YET")
-            elif isinstance(dd, xr.Dataset):
-                # form of "temp": "degree_Celsius"
-                units_dict = {
-                    dd_varname: self.var_def[cf_varname]["units"]
-                    for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
-                }
-                # convert to conventional units
-                dd2 = dd2.pint.to(units_dict)
+                # Preprocess to change salinity units away from 1e-3
+                if isinstance(dd, pd.DataFrame):
+                    # this replaces units in the 2nd column level of 1e-3 with psu
+                    new_levs = [
+                        "psu" if col == "1e-3" else col for col in dd2.columns.levels[1]
+                    ]
+                    dd2.columns.set_levels(new_levs, level=1, inplace=True)
+                elif isinstance(dd, xr.Dataset):
+                    for Var in dd2.data_vars:
+                        if (
+                            "units" in dd2[Var].attrs
+                            and dd2[Var].attrs["units"] == "1e-3"
+                        ):
+                            dd2[Var].attrs["units"] = "psu"
+                # run pint quantify on each data structure
+                dd2 = dd2.pint.quantify()
+                # dd2 = dd2.pint.quantify(level=-1)
 
-            dd2 = dd2.pint.dequantify()
+                # go through each variable by name to make sure in correct units
+                # have to do this in separate loop so that can dequantify afterward
+                if isinstance(dd, pd.DataFrame):
+                    print("NOT IMPLEMENTED FOR DATAFRAME YET")
+                elif isinstance(dd, xr.Dataset):
+                    # form of "temp": "degree_Celsius"
+                    units_dict = {
+                        dd_varname: self.var_def[cf_varname]["units"]
+                        for (dd_varname, cf_varname) in zip(dd_varnames, cf_varnames)
+                    }
+                    # convert to conventional units
+                    dd2 = dd2.pint.to(units_dict)
+
+                dd2 = dd2.pint.dequantify()
 
             # now loop for QARTOD on each variable
             for dd_varname, cf_varname in zip(dd_varnames, cf_varnames):
