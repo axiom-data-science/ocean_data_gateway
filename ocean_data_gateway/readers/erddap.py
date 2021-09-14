@@ -600,24 +600,15 @@ class region(ErddapReader):
       and attributes with regular expressions to be used with
       `cf-xarray`. It can be local or a URL point to a nonlocal gist.
       This is required for running QC in Gateway. For example:
-      ```
-      my_custom_criteria = {
-        "salt": {
-            "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
-            "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
-        },
-      }
-      ```
+      >>> my_custom_criteria = {"salt": {
+      ... "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+      ... "name": (?i)sal$|(?i)s.sea_water_practical_salinity$"}}
     var_def: dict, optional
       A dictionary with the same keys as criteria (criteria can have
       more) that describes QC definitions and units. It should include
       the variable units, fail_span, and suspect_span. For example:
-      ```
-      var_def = {
-        "salt": {"units": "psu", "fail_span": [-10, 60],
-                 "suspect_span": [-1, 45]},
-      }
-      ```
+      >>> var_def = {"salt": {"units": "psu",
+      ... "fail_span": [-10, 60], "suspect_span": [-1, 45]}}
     approach: string
         approach is defined as 'region' for this class.
     num_variables: int
@@ -648,24 +639,15 @@ class region(ErddapReader):
               and attributes with regular expressions to be used with
               `cf-xarray`. It can be local or a URL point to a nonlocal gist.
               This is required for running QC in Gateway. For example:
-              ```
-              my_custom_criteria = {
-                "salt": {
-                    "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
-                    "name": (?i)sal$|(?i)s.sea_water_practical_salinity$",
-                },
-              }
-              ```
+              >>> my_custom_criteria = {"salt": {
+              ... "standard_name": "sea_water_salinity$|sea_water_practical_salinity$",
+              ... "name": (?i)sal$|(?i)s.sea_water_practical_salinity$"}}
             * var_def: dict, optional
               A dictionary with the same keys as criteria (criteria can have
               more) that describes QC definitions and units. It should include
               the variable units, fail_span, and suspect_span. For example:
-              ```
-              var_def = {
-                "salt": {"units": "psu", "fail_span": [-10, 60],
-                         "suspect_span": [-1, 45]},
-              }
-              ```
+              >>> var_def = {"salt": {"units": "psu",
+              ... "fail_span": [-10, 60], "suspect_span": [-1, 45]}}
         """
         assert isinstance(kwargs, dict), "input arguments as dictionary"
         er_kwargs = {
