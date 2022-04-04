@@ -54,7 +54,7 @@ class ErddapReader(Reader):
         reader is defined as "ErddapReader".
     """
 
-    def __init__(self, known_server="ioos", protocol=None, server=None, parallel=True):
+    def __init__(self, known_server="ioos", protocol=None, server=None, parallel=False):
         """
         Parameters
         ----------
@@ -363,9 +363,7 @@ class ErddapReader(Reader):
 
         # check if "prediction" is present in metadata, esp in case of NOAA
         # model predictions
-        is_prediction = "Prediction" in " ".join(
-            list(info["Value"].replace(np.nan, None).values)
-        )
+        is_prediction = "Prediction" in info["Value"].str.cat()
 
         # add erddap server name
         return {
