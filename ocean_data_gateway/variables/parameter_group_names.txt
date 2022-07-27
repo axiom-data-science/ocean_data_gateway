@@ -1,0 +1,200 @@
+Ammonium 23
+Atmospheric Pressure: Air Pressure at Sea Level 362
+Atmospheric Pressure: Barometric Pressure 4152
+Backscatter Intensity 286
+Battery 2705
+Bicarbonate Ion (HCO3-) 1
+Bioluminescence 1
+Blue Green Algae 10
+CDOM Concentration 45
+CDOM: Colored Dissolved Organic Matter 41
+CDOM: Concentration Of Colored Dissolved Organic Matter In Sea Water Expressed As Equivalent Mass Fraction Of Quinine Sulfate Dihydrate 279
+CO2 22
+CO2: Alkalinity 7
+CO2: Carbon Dioxide Flux from Ocean to Atmosphere 4
+CO2: Carbon Dioxide Fugacity Difference between Air and Sea Water 3
+CO2: Carbon Dioxide Partial Pressure difference Between Air and sea water 169
+CO2: Dissolved Carbon Dioxide (Aqueous, CO2(aq)) 1
+CO2: Dissolved Carbon Dioxide PPM 2
+CO2: Fugacity of Carbon Dioxide in Air 3
+CO2: Fugacity of Carbon Dioxide in Sea Water 3
+CO2: Mole Fraction of Carbon Dioxide in Air in Dry Gas 4
+CO2: Mole Fraction of Carbon Dioxide in Air in Wet Gas 5
+CO2: Mole Fraction of Carbon Dioxide in Sea Water in Dry Gas 3
+CO2: Mole Fraction of Carbon Dioxide in Sea Water in Wet Gas 6
+CO2: PPM of Carbon Dioxide in Air in Dry Gas 1
+CO2: PPM of Carbon Dioxide in Sea Water in Wet Gas 1
+CO2: Partial Pressure 10
+CO2: Partial Pressure of Carbon Dioxide in Sea Water 27
+CO2: Surface Partial Pressure of Carbon Dioxide in Air 11
+CO2: Surface Partial Pressure of Carbon Dioxide in Sea Water 15
+CO2: Total Dissolved Inorganic Carbon (TCO2 or DIC) 27
+CO2: pCO2 in Air 36
+CO2: pCO2 in Sea Water 36
+Carbon 24
+Carbonate Ion (CO3--) 1
+Chlorophyll 204
+Chlorophyll a 333
+Cloud Base 16
+Cloud Cover 41
+Conductivity 3776
+Currents 1168
+Currents: Eastward Sea Water Velocity 1251
+Currents: Error Seawater Velocity 30
+Currents: Error Velocity 4
+Currents: Northward Sea Water Velocity 1251
+Currents: Upward Mean Point - Ascending 1
+Currents: Upward Mean Point - Descending 1
+Currents: Upward Sea Water Velocity 607
+Depth 441
+Depth to Water Level 1580
+Dew Point 2998
+Downwelling Spectral Irradiance 25
+Evaporation Rate 1
+Fluorescence 106
+Flux: Freshwater Flux 14
+Flux: Momentum Flux 14
+Freezing Point 9
+Fuel  Temperature 1615
+Fuel Moisture 1016
+Heat Flux: Direct Covariance Flux of Heat 4
+Heat Flux: Latent Heat Flux 14
+Heat Flux: Latent Heat Flux - Minute 14
+Heat Flux: Net Heat Flux 14
+Heat Flux: Net Heat Flux - Minute 14
+Heat Flux: Rain Heat Flux 14
+Heat Flux: Sensible Heat Flux 14
+Heat Flux: Sensible Heat Flux - Minute 14
+Heat Index 9
+High-Resolution Compass Direction 4
+High-Resolution X-Tilt 4
+High-Resolution Y-Tilt 4
+Humidity: Relative Humidity 5353
+Humidity: Specific Humidity 14
+Hydrogen Concentration 1
+Hydrogen Sulfide Concentration 1
+Light Attenuation 23
+Location 48
+Mass Concentration Of Phycoerythrin Expressed As Chlorophyll In Sea Water 23
+Mole Fraction of Water Vapor in Air 3
+Nitrogen 24
+Nitrogen: Nitrate 70
+Nitrogen: Nitrite 3
+Omega Aragonite 7
+Optical Backscatter 47
+Oxygen: Dissolved Oxygen Concentration 1104
+Oxygen: Dissolved Oxygen Molar Concentration 117
+Oxygen: Mole Concentration Of Dissolved Molecular Oxygen In Sea Water 197
+Oxygen: Saturation 616
+Panel Temperature 30
+Percent Oxygen Ratio between Air and Sea Water 20
+Phosphate 38
+Phycocyanin (Marine Cyanobacteria) 1
+Phycoerythrin (Freshwater Cyanobacteria) 1
+Precipitation 7364
+Precipitation: Rain Rate 14
+Precipitation: Rainfall Amount 1
+Radiation: Global Solar Radiation 1
+Radiation: Longwave Radiation 3
+Radiation: Net Atmospheric Radiation 3
+Radiation: Net Longwave Radiation 14
+Radiation: Net Longwave Radiation - Minute 14
+Radiation: Net Shortwave Irradiance 14
+Radiation: Net Shortwave Irradiance - Hourly 14
+Radiation: Photosynthetically Active Radiation 25
+Radiation: Short Wave Radiation 1
+Radiation: Shortwave Radiation 52
+Radiation: Solar Radiation 2600
+Radiative Flux: Downwelling Longwave Flux In Air 23
+Radiative Flux: Downwelling Photosynthetic Photon Flux In Sea Water 49
+Radiative Flux: Downwelling Photosynthetic Radiative Flux In Sea Water 3
+Radiative Flux: Downwelling Shortwave Flux In Air 24
+Radiative Flux: Net Downward Shortwave Flux In Air 6
+Radiative Flux: Volume Beam Attenuation Coefficient Of Radiative Flux In Sea Water 451
+Round-Trip Acoustic Travel Time 2
+Salinity 3204
+Sea Floor Depth Below Sea Surface 130
+Sea Ice: Direction 6
+Sea Ice: Eastward Velocity 8
+Sea Ice: Northward Velocity 8
+Sea Ice: Speed 6
+Sea Nettle Probability 10
+Sea Surface Height 271
+Sea Water Density 1776
+Sea Water Pressure 2445
+Sea Water Pressure Due To Sea Water 68
+Sea Water Pressure at Sea Floor 2
+Sea Water Pressure: Bottom Pressure 4
+Sea Water Turbidity 157
+Seafloor High-Resolution Corrected Compass Direction 4
+Seafloor High-Resolution Tilt Direction 4
+Seafloor High-Resolution Tilt Magnitude 4
+Seafloor Uplift and Deflation - 10-Min Mean Seafloor Uplift Rate 4
+Seafloor Uplift and Deflation - 5-Min Rate of Depth Change 4
+Seafloor Uplift and Deflation - Mean Seafloor Depth 4
+Seafloor Uplift and Deflation - Mean Seafloor Pressure 4
+Seafloor Uplift and Deflation - Predicted Tide 4
+Seawater Temperature in Spatial Grid 1
+Sediment: Mass Concentration in Sea Water 14
+Silicon 28
+Snow Depth 1220
+Snow Water Equivalent 866
+Soil Moisture Percent 779
+Soil Salinity 622
+Specific Conductance 30
+Speed Of Sound In Sea Water 231
+Stream Flow 15203
+Stream Height 19758
+Temperature: Air Temperature 8369
+Temperature: Ground Temperature 857
+Temperature: Sea Surface Temperature 87
+Temperature: Skin Seawater Temperature 14
+Temperature: Surface Temperature 137
+Temperature: Water Temperature 7136
+Thermistor: Internal Board Temperature 1
+Thermistor: Reference Temperature 2
+Tide Predictions 3132
+Total Dissolved Solids 2
+Transmission (V) 1
+Turbidity 271
+Vent Fluid Absolute Temperature 1
+Vent Fluid Absolute Temperature - High 1
+Vent Fluid Absolute Temperature - Low 1
+Vent Fluid Chloride Concentration 2
+Vent Fluid Oxidation-Reduction Potential 1
+Vent Fluid Temperature 1
+Vent Fluid Thermocouple Temperature - High 1
+Vent Fluid Thermocouple Temperature - Low 1
+Visibility 35
+Volume Fraction Of Oxygen In Sea Water 39
+Water Level 841
+Water Surface above Datum 19489
+Waves: Average Period 432
+Waves: Directional Spread 11
+Waves: Dominant Directional Spread 2
+Waves: Dominant Height and Direction 5
+Waves: Dominant Period 391
+Waves: Height and Direction 425
+Waves: Height and Direction Top Ten Percent 1
+Waves: Maximum Height 53
+Waves: Maximum Period 1
+Waves: Mean Wave To Direction 9
+Waves: Significant Height and Direction 693
+Waves: Significant Period 7
+Waves: Swell Height and Direction 154
+Waves: Swell Period 152
+Waves: Wind Wave Height and Direction 154
+Waves: Wind Wave Period 153
+WebCam 729
+Wind Velocity - Northerly 4
+Wind: Along-Wind Component of Momentum Flux 4
+Wind: Cross-Wind Component of Momentum Flux 4
+Wind: Wind Chill 12
+Winds: Eastward Wind 25
+Winds: Gusts 3789
+Winds: Northward Wind 21
+Winds: Samples 1
+Winds: Speed and Direction 7091
+Winds: Vertical Wind 4
+Winds: at 10 m 18
+pH 965
