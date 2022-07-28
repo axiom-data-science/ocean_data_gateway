@@ -9,7 +9,10 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.7", "3.8"]
+        python-version: ["3.7"]
+        # not testing on 3.8 until ioos_qc has pinned xarray<2022.3.0
+        # https://github.com/ioos/ioos_qc/issues/77
+        # python-version: ["3.7", "3.8"]
     steps:
       - uses: actions/checkout@v2
       - name: Cache conda
