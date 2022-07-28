@@ -49,8 +49,11 @@ logs_path.mkdir(exist_ok=True)
 catalogs_path = base_path / "catalogs"
 catalogs_path.mkdir(exist_ok=True)
 
-variables_path = base_path / "variables"
-variables_path.mkdir(exist_ok=True)
+# Have this be in the package dir for now
+# later need to be able to write new files
+variables_path = Path(__file__).parent / "variables"
+# variables_path = base_path / "variables"
+# variables_path.mkdir(exist_ok=True)
 
 files_path = base_path / "files"
 files_path.mkdir(exist_ok=True)
