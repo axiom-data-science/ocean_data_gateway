@@ -10,6 +10,7 @@ import urllib.parse
 import numpy as np
 import pandas as pd
 
+from importlib_resources import files
 from joblib import Parallel, delayed
 
 import ocean_data_gateway as odg
@@ -108,9 +109,10 @@ def all_variables(server, parallel=True):
 
     if "axds" in server:
 
-        path_fname = odg.variables_path.joinpath("parameter_group_names.txt")
-        path_csv_fname = odg.variables_path.joinpath("axds_platform2_variable_list.csv")
         # read in Axiom Search parameter group names
+        path_csv_fname = files("ocean_data_gateway.variables").joinpath(
+            "axds_platform2_variable_list.csv"
+        )
         # save to file
         if path_csv_fname.is_file():
             df = pd.read_csv(path_csv_fname, index_col="variable")
@@ -118,6 +120,7 @@ def all_variables(server, parallel=True):
             print(
                 "Please wait while the list of available variables is made. This only happens once."
             )
+            path_fname = odg.variables_path.joinpath("parameter_group_names.txt")
             os.system(
                 f'curl -sSL -H "Accept: application/json" "https://search.axds.co/v2/search" | jq -r \'.tags["Parameter Group"][] | "\(.label) \(.count)"\' > {path_fname}'
             )
@@ -144,8 +147,9 @@ def all_variables(server, parallel=True):
 
     # This is an ERDDAP server
     else:
+
         server_name = urllib.parse.urlparse(server).netloc
-        path_name_counts = odg.variables_path.joinpath(
+        path_name_counts = files("ocean_data_gateway.variables").joinpath(
             f"erddap_variable_list_{server_name}.csv"
         )
 

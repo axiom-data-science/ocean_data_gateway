@@ -10,6 +10,7 @@ dependencies:
   - erddapy
   - flake8
   - h5netcdf
+  - importlib_resources
   - intake
   - intake-xarray
   - ioos_qc
