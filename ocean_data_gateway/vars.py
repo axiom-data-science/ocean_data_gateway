@@ -110,7 +110,9 @@ def all_variables(server, parallel=True):
     if "axds" in server:
 
         # read in Axiom Search parameter group names
-        path_csv_fname = files('ocean_data_gateway.variables').joinpath("axds_platform2_variable_list.csv")
+        path_csv_fname = files("ocean_data_gateway.variables").joinpath(
+            "axds_platform2_variable_list.csv"
+        )
         # save to file
         if path_csv_fname.is_file():
             df = pd.read_csv(path_csv_fname, index_col="variable")
@@ -147,7 +149,9 @@ def all_variables(server, parallel=True):
     else:
 
         server_name = urllib.parse.urlparse(server).netloc
-        path_name_counts = files('ocean_data_gateway.variables').joinpath(f"erddap_variable_list_{server_name}.csv")
+        path_name_counts = files("ocean_data_gateway.variables").joinpath(
+            f"erddap_variable_list_{server_name}.csv"
+        )
 
         if path_name_counts.is_file():
             return pd.read_csv(path_name_counts, index_col="variable")
