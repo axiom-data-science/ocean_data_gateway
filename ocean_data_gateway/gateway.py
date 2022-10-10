@@ -17,6 +17,7 @@ from ioos_qc.config import QcConfig  # noqa: E402
 import ocean_data_gateway as odg  # noqa: E402
 
 from ocean_data_gateway import Reader  # noqa: E402
+from ocean_data_gateway import utils  # noqa: E402
 
 
 class Gateway(Reader):
@@ -122,7 +123,7 @@ class Gateway(Reader):
             criteria = self.kwargs_all["criteria"]
             # link to nonlocal dictionary definition
             if isinstance(criteria, str) and criteria[:4] == "http":
-                criteria = odg.return_response(criteria)
+                criteria = utils.fetch_criteria(criteria)
             cf_xarray.set_options(custom_criteria=criteria)
             self.criteria = criteria
         else:
@@ -133,7 +134,7 @@ class Gateway(Reader):
             var_def = self.kwargs_all["var_def"]
             # link to nonlocal dictionary definition
             if isinstance(var_def, str) and var_def[:4] == "http":
-                var_def = odg.return_response(var_def)
+                var_def = utils.fetch_criteria(var_def)
             self.var_def = var_def
         else:
             self.var_def = None

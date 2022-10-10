@@ -5,6 +5,7 @@ match_var()
 """
 
 import multiprocessing
+import requests
 
 # https://stackoverflow.com/questions/3387691/how-to-perfectly-override-a-dict
 from collections.abc import MutableMapping
@@ -170,14 +171,14 @@ class Reader(MutableMapping):
         return self.store.values()
 
 
-def return_response(url):
-    """Return response from website."""
-
-    import requests
-    import ast
-
+def fetch_criteria(url: str) -> dict:
+    """Return parsed criteria dictionary from URL."""
     # For variable identification with cf-xarray
     # custom_criteria to identify variables is saved here
     # https://gist.github.com/kthyng/c3cc27de6b4449e1776ce79215d5e732
     response = requests.get(url)
-    return ast.literal_eval(response.text)
+    response.raise_for_status()
+    data = response.json()
+    if not isinstance(data, dict):
+        raise ValueError("Remote criteria is in unknown format. {url}")
+    return data
