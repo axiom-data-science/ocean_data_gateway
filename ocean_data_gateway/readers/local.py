@@ -247,7 +247,7 @@ class LocalReader(Reader):
                 for dataset_id in self.dataset_ids:
                     meta = self.meta_by_dataset(dataset_id)
                     columns += list(meta.metadata.keys())
-                columns = set(columns)  # take unique column names
+                columns = list(set(columns))  # take unique column names
 
                 self._meta = pd.DataFrame(index=self.dataset_ids, columns=columns)
                 for dataset_id in self.dataset_ids:
