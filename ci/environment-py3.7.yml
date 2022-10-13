@@ -13,7 +13,7 @@ dependencies:
   - importlib_resources
   - intake
   - intake-xarray
-  - ioos_qc
+  #- ioos_qc
   - ipython
   - isort
   - joblib
@@ -36,3 +36,4 @@ dependencies:
     - codecov
     - pytest-cov
     - coverage[toml]
+    - git+https://github.com/ioos/ioos_qc@main#ioos_qc

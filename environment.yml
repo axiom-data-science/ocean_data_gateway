@@ -14,7 +14,7 @@ dependencies:
   - importlib_resources
   - intake
   - intake-xarray
-  - ioos_qc
+  #- ioos_qc
   - ipython
   - isort
   - joblib
@@ -29,3 +29,9 @@ dependencies:
   - requests
   - scipy
   - xarray
+  - pip
+    # LC 2022-10-13: 2.0.1 release of ioos_qc doesn't have fix for xarray API
+    # changes. We'll pip install it for the time being until a new release on
+    # conda-forge is available.
+  - pip:
+    - git+https://github.com/ioos/ioos_qc@main#ioos_qc
