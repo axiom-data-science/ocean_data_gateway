@@ -5,12 +5,12 @@ match_var()
 """
 
 import multiprocessing
-import requests
 
 # https://stackoverflow.com/questions/3387691/how-to-perfectly-override-a-dict
 from collections.abc import MutableMapping
 
 import pandas as pd
+import requests
 
 from joblib import Parallel, delayed
 
