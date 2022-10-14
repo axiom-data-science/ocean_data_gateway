@@ -16,7 +16,7 @@ import xarray as xr
 
 import ocean_data_gateway as odg
 
-from ocean_data_gateway import Reader
+from ocean_data_gateway import Reader, utils
 
 
 logger = logging.getLogger(__name__)
@@ -889,7 +889,7 @@ class region(AxdsReader):
             criteria = kwargs["criteria"]
             # link to nonlocal dictionary definition
             if isinstance(criteria, str) and criteria[:4] == "http":
-                criteria = odg.return_response(criteria)
+                criteria = utils.fetch_criteria(criteria)
             cf_xarray.set_options(custom_criteria=criteria)
             self.criteria = criteria
         else:

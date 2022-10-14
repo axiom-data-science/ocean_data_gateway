@@ -8,19 +8,15 @@ from cf_xarray.units import units  # isort:skip
 import pint_xarray  # isort:skip
 
 pint_xarray.unit_registry = units  # isort:skip
-import ast  # noqa: E402
 import logging  # noqa: E402
 
-from pathlib import Path  # noqa: E402
-
-import requests  # noqa: E402
+from pathlib import Path
 
 
 from .utils import (  # isort:skip  # noqa: E402, F401
     Reader,
     load_data,
     resample_like,
-    return_response,
 )
 
 
