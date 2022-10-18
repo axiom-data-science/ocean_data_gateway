@@ -2,22 +2,21 @@
 This controls and connects to the individual readers.
 """
 
-import cf_xarray  # isort:skip
-from cf_xarray.units import units  # isort:skip
-import pint_xarray  # isort:skip
+from types import ModuleType
+from typing import Any, List, Optional, Tuple, Type
 
-pint_xarray.unit_registry = units  # isort:skip
+import cf_xarray
+import pandas as pd
+import pint_xarray
+import xarray as xr
+from cf_xarray.units import units
+from ioos_qc.config import QcConfig
 
-import pandas as pd  # noqa: E402
-import pint_xarray  # noqa: E402
-import xarray as xr  # noqa: E402
+import ocean_data_gateway as odg
+from ocean_data_gateway import utils
+from ocean_data_gateway.readers import DataReader, Reader
 
-from ioos_qc.config import QcConfig  # noqa: E402
-
-import ocean_data_gateway as odg  # noqa: E402
-
-from ocean_data_gateway import Reader  # noqa: E402
-from ocean_data_gateway import utils  # noqa: E402
+pint_xarray.unit_registry = units
 
 
 class Gateway(Reader):
@@ -34,6 +33,10 @@ class Gateway(Reader):
     kwargs: dict
         Keyword arguments that contain specific arguments for the readers.
     """
+    reader_default_options = {
+        "erddap": {"known_server": ["ioos", "coastwatch"]},
+        "axds": {"axds_type": ["platform2", "layer_group"]},
+    }
 
     def __init__(self, *args, **kwargs):
         """
@@ -97,6 +100,8 @@ class Gateway(Reader):
         Input keyword arguments that are specific to readers will be collected
         in local dictionary kwargs.
         """
+        # The array of initialized readers. This instance variable is initialized by the sources property.
+        self._sources: Optional[List[DataReader]] = None
 
         # make sure only known keys are input in kwargs
         unknown_keys = set(list(kwargs.keys())) - set(odg.keys_kwargs)
@@ -174,8 +179,84 @@ class Gateway(Reader):
         self.__setitem__(key, returned_data)
         return returned_data
 
+    def _get_sources_from_kwargs(self) -> List[ModuleType]:
+        # allow user to override what readers to use
+        if "readers" in self.kwargs_all.keys():
+            SOURCES = self.kwargs_all["readers"]
+            if not isinstance(SOURCES, list):
+                SOURCES = [SOURCES]
+        else:
+            SOURCES = odg._SOURCES
+        return SOURCES
+
+    def _find_reader(self, source: ModuleType) -> Tuple[str, List[Any]]:
+        # in case of important options for readers
+        # but the built in options are ignored for a reader
+        # if one is input in kwargs[source.reader]
+        if source.reader in self.reader_default_options:
+            reader_options = self.reader_default_options[source.reader]
+            reader_key = list(reader_options.keys())[0]
+            # if the user input their own option for this, use it instead
+            # this makes it loop once
+            if (source.reader in self.kwargs.keys()) and (
+                reader_key in self.kwargs[source.reader]
+            ):
+                #                         reader_values = [None]
+                reader_values = self.kwargs[source.reader][reader_key]
+            else:
+                reader_values = list(reader_options.values())[0]
+        else:
+            reader_key = None
+            # this is to make it loop once for cases without
+            # extra options like localReader
+            reader_values = [None]
+        if not isinstance(reader_values, list):
+            reader_values = [reader_values]
+        return reader_key, reader_values
+
+    def _sanitize_variables(self, source: ModuleType, reader_values: List[Any]) -> List[Any]:
+        """Return a list of sanitized variables. Returns a list of None if no variables specified."""
+        # catch if the user is putting in a set of variables to match
+        # the set of reader options
+        if (source.reader in self.kwargs) and (
+            "variables" in self.kwargs[source.reader]
+        ):
+            variables_values = self.kwargs[source.reader]["variables"]
+            if not isinstance(variables_values, list):
+                variables_values = [variables_values]
+        #                     if len(reader_values) == variables_values:
+        #                         variables_values
+        # catch scenario where variables input to all readers at once
+        elif "variables" in self.kwargs_all:
+            variables_values = [self.kwargs_all["variables"]] * len(
+                reader_values
+            )
+        else:
+            variables_values = [None] * len(reader_values)
+        return variables_values
+
+    def _initialize_reader(self, source: ModuleType, option: Any, reader_key: str, variables: List[str]) -> DataReader:
+        """Return the initialized reader using appropriate args."""
+        # setup reader with kwargs for that reader
+        # prioritize input kwargs over default args
+        # NEED TO INCLUDE kwargs that go to all the readers
+        args_in = {}
+        args_in.update(self.kwargs_all)
+
+        if source.reader in self.kwargs:
+            args_in.update(self.kwargs[source.reader])
+
+        args_in.update({reader_key: option})
+        args_in.update({"variables": variables})
+
+        if self.kwargs_all["approach"] == "region":
+            reader = source.region(args_in)
+        elif self.kwargs_all["approach"] == "stations":
+            reader = source.stations(args_in)
+        return reader
+
     @property
-    def sources(self):
+    def sources(self) -> List[DataReader]:
         """Set up data sources (readers).
 
         Notes
@@ -183,115 +264,19 @@ class Gateway(Reader):
         All readers are included by default (readers as listed in odg._SOURCES). See
          __init__ for options.
         """
-
-        if not hasattr(self, "_sources"):
-
-            # allow user to override what readers to use
-            if "readers" in self.kwargs_all.keys():
-                SOURCES = self.kwargs_all["readers"]
-                if not isinstance(SOURCES, list):
-                    SOURCES = [SOURCES]
-            else:
-                SOURCES = odg._SOURCES
+        if self._sources is None:
+            SOURCES = self._get_sources_from_kwargs()
 
             # loop over data sources to set them up
             sources = []
             for source in SOURCES:
-                #                 print(source.reader)
+                reader_key, reader_values = self._find_reader(source)
+                variables_values = self._sanitize_variables(source, reader_values)
 
-                # in case of important options for readers
-                # but the built in options are ignored for a reader
-                # if one is input in kwargs[source.reader]
-                if source.reader in odg.OPTIONS.keys():
-                    reader_options = odg.OPTIONS[source.reader]
-                    reader_key = list(reader_options.keys())[0]
-                    # if the user input their own option for this, use it instead
-                    # this makes it loop once
-                    if (source.reader in self.kwargs.keys()) and (
-                        reader_key in self.kwargs[source.reader]
-                    ):
-                        #                         reader_values = [None]
-                        reader_values = self.kwargs[source.reader][reader_key]
-                    else:
-                        reader_values = list(reader_options.values())[0]
-                else:
-                    reader_key = None
-                    # this is to make it loop once for cases without
-                    # extra options like localReader
-                    reader_values = [None]
-                if not isinstance(reader_values, list):
-                    reader_values = [reader_values]
-
-                # catch if the user is putting in a set of variables to match
-                # the set of reader options
-                if (source.reader in self.kwargs) and (
-                    "variables" in self.kwargs[source.reader]
+                for option, variables in zip(
+                    reader_values, variables_values
                 ):
-                    variables_values = self.kwargs[source.reader]["variables"]
-                    if not isinstance(variables_values, list):
-                        variables_values = [variables_values]
-                #                     if len(reader_values) == variables_values:
-                #                         variables_values
-                # catch scenario where variables input to all readers at once
-                elif "variables" in self.kwargs_all:
-                    variables_values = [self.kwargs_all["variables"]] * len(
-                        reader_values
-                    )
-                else:
-                    variables_values = [None] * len(reader_values)
-
-                # catch if the user is putting in a set of dataset_ids to match
-                # the set of reader options
-                if (source.reader in self.kwargs) and (
-                    "dataset_ids" in self.kwargs[source.reader]
-                ):
-                    dataset_ids_values = self.kwargs[source.reader]["dataset_ids"]
-                    if not isinstance(dataset_ids_values, list):
-                        dataset_ids_values = [dataset_ids_values]
-                #                     if len(reader_values) == variables_values:
-                #                         variables_values
-                else:
-                    dataset_ids_values = [None] * len(reader_values)
-
-                for option, variables, dataset_ids in zip(
-                    reader_values, variables_values, dataset_ids_values
-                ):
-                    # setup reader with kwargs for that reader
-                    # prioritize input kwargs over default args
-                    # NEED TO INCLUDE kwargs that go to all the readers
-                    args = {}
-                    args_in = {
-                        **args,
-                        **self.kwargs_all,
-                        #                                reader_key: option,
-                        #                                **self.kwargs[source.reader],
-                    }
-
-                    if source.reader in self.kwargs.keys():
-                        args_in = {
-                            **args_in,
-                            **self.kwargs[source.reader],
-                        }
-
-                    args_in = {**args_in, reader_key: option}
-
-                    # deal with variables separately
-                    args_in = {
-                        **args_in,
-                        "variables": variables,
-                    }
-
-                    # # deal with dataset_ids separately
-                    # args_in = {
-                    #     **args_in,
-                    #     "dataset_ids": dataset_ids,
-                    # }
-
-                    if self.kwargs_all["approach"] == "region":
-                        reader = source.region(args_in)
-                    elif self.kwargs_all["approach"] == "stations":
-                        reader = source.stations(args_in)
-
+                    reader = self._initialize_reader(source, option, reader_key, variables)
                     sources.append(reader)
 
             self._sources = sources
@@ -384,12 +369,10 @@ class Gateway(Reader):
             data = []
             for source in self.sources:
 
-                # import pdb; pdb.set_trace()
                 data.append(source.data)
                 # data.append(source[dataset_ids])
                 # data.append(source.data(dataset_ids=dataset_ids))
 
-            # import pdb; pdb.set_trace()
             # # make dict from individual dicts
             # from collections import ChainMap
             #

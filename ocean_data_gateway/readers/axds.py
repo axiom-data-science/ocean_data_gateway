@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Reader for Axiom databases.
 """
@@ -15,9 +17,8 @@ import requests
 import xarray as xr
 
 import ocean_data_gateway as odg
-
-from ocean_data_gateway import Reader, utils
-
+from ocean_data_gateway import utils
+from ocean_data_gateway.readers import DataReader
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 reader = "axds"
 
 
-class AxdsReader(Reader):
+class AxdsReader(DataReader):
     """
     This class searches Axiom databases for types `platforms2`, which
     are like gliders, and `layer_group`, which are like grids and models.
@@ -55,6 +56,8 @@ class AxdsReader(Reader):
     reader: string
         Reader name: AxdsReader
     """
+    default_options = {"axds_type": ["platform2", "layer_group"]}
+    source_name = 'axds'
 
     def __init__(
         self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"
@@ -207,17 +210,17 @@ class AxdsReader(Reader):
         to access the time limits of the search.
         """
         # convert input datetime to seconds since 1970
-        startDateTime = (
+        start_date_time = (
             pd.Timestamp(self.kw["min_time"]).tz_localize("UTC")
             - pd.Timestamp("1970-01-01 00:00").tz_localize("UTC")
         ) // pd.Timedelta("1s")
-        endDateTime = (
+        end_date_time = (
             pd.Timestamp(self.kw["max_time"]).tz_localize("UTC")
             - pd.Timestamp("1970-01-01 00:00").tz_localize("UTC")
         ) // pd.Timedelta("1s")
 
         # search by time
-        url_add_time = f"&startDateTime={startDateTime}&endDateTime={endDateTime}"
+        url_add_time = f"&startDateTime={start_date_time}&endDateTime={end_date_time}"
 
         return f"{url_add_time}"
 
@@ -755,20 +758,6 @@ sources:
 
         # return (dataset_id, data)
         return data
-
-    # @property
-    def data(self, dataset_ids=None):
-        """Read in data for some or all dataset_ids.
-
-        NOT USED CURRENTLY
-
-        Once data is read in for a dataset_ids, it is remembered.
-
-        See full documentation in `utils.load_data()`.
-        """
-
-        output = odg.utils.load_data(self, dataset_ids)
-        return output
 
     def save(self):
         """Save datasets locally."""
