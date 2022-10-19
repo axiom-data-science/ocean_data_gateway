@@ -85,11 +85,6 @@ def test_qc_error():
         assert (data.qc()[fname]["temperature_qc"] == np.ones(10)).all()
 
 
-def test_default_readers():
-    readers = Gateway._get_module_readers()
-    assert DataReader in readers
-    assert ErddapReader in readers
-
 
 def test_default_sources():
     gateway = odg.Gateway(

@@ -5,6 +5,7 @@ from unittest import mock
 
 import pandas as pd
 import pytest
+from requests import HTTPError
 import xarray as xr
 
 import ocean_data_gateway as odg
@@ -39,6 +40,7 @@ def test_fetch_criteria_expects_dict(requests_mock):
     utils.fetch_criteria(url)
     assert resp.raise_for_status.called
 
+    resp.raise_for_status.side_effect = HTTPError('test')
     resp.json.return_value = []
-    with pytest.raises(ValueError):
+    with pytest.raises(HTTPError):
         utils.fetch_criteria(url)
