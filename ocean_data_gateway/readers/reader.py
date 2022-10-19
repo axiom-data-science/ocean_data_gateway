@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""Reader baseclass definition."""
 from collections.abc import MutableMapping
 
 
