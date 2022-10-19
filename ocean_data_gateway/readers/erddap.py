@@ -6,6 +6,8 @@ import logging
 import multiprocessing
 import urllib.parse
 
+from typing import Optional
+
 import cf_xarray  # noqa: F401
 import pandas as pd
 import xarray as xr
@@ -15,7 +17,8 @@ from joblib import Parallel, delayed
 
 import ocean_data_gateway as odg
 
-from ocean_data_gateway import Reader, utils
+from ocean_data_gateway import utils
+from ocean_data_gateway.readers.data_reader import DataReader
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +28,7 @@ logger = logging.getLogger(__name__)
 reader = "erddap"
 
 
-class ErddapReader(Reader):
+class ErddapReader(DataReader):
     """
     This class searches ERDDAP servers. There are 2 known_servers but
     others can be input too.
@@ -53,7 +56,17 @@ class ErddapReader(Reader):
         reader is defined as "ErddapReader".
     """
 
-    def __init__(self, known_server="ioos", protocol=None, server=None, parallel=False):
+    default_options = {"known_server": ["ioos", "coastwatch"]}
+    source_name = "erddap"
+
+    def __init__(
+        self,
+        known_server="ioos",
+        protocol=None,
+        server=None,
+        parallel=False,
+        erddap_client_class: Optional[type] = None,
+    ):
         """
         Parameters
         ----------
@@ -71,7 +84,10 @@ class ErddapReader(Reader):
         parallel: boolean
             If True, run with simple parallelization using `multiprocessing`.
             If False, run serially.
+        erddap_client_class : type, optional
+            Clients can pass a custom ERDDAP client class that conforms to the erddapy.ERDDAP API.
         """
+        erddap_client_class = erddap_client_class or ERDDAP
         self.parallel = parallel
 
         # hard wire this for now
@@ -100,7 +116,7 @@ class ErddapReader(Reader):
             assert (protocol is not None) & (server is not None), statement
 
         self.known_server = known_server
-        self.e = ERDDAP(server=server)
+        self.e: ERDDAP = erddap_client_class(server=server)
         self.e.protocol = protocol
         self.e.server = server
         self.filetype = filetype
@@ -148,7 +164,6 @@ class ErddapReader(Reader):
         """
 
         returned_data = self.data_by_dataset(key)
-        # returned_data = self._return_data(key)
         self.__setitem__(key, returned_data)
         return returned_data
 
@@ -426,7 +441,6 @@ class ErddapReader(Reader):
         -----
         Data is read into memory.
         """
-
         if self.filetype == "csv":
             # if self.e.protocol == "tabledap":
             try:
@@ -563,22 +577,7 @@ class ErddapReader(Reader):
                     logger.warning("no data to be read in for %s" % dataset_id)
                     dd = None
 
-        # return (dataset_id, dd)
         return dd
-
-    # @property
-    def data(self, dataset_ids=None):
-        """Read in data for some or all dataset_ids.
-
-        NOT USED CURRENTLY
-
-        Once data is read in for a dataset_ids, it is remembered.
-
-        See full documentation in `utils.load_data()`.
-        """
-
-        output = odg.utils.load_data(self, dataset_ids)
-        return output
 
 
 # Search for stations by region

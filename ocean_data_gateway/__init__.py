@@ -14,9 +14,8 @@ from pathlib import Path
 
 
 from .utils import (  # isort:skip  # noqa: E402, F401
-    Reader,
-    load_data,
     resample_like,
+    fetch_criteria,
 )
 
 
@@ -73,12 +72,6 @@ logging.captureWarnings(True)
 
 # all available sources/readers
 _SOURCES = [erddap, axds, local]
-
-# important built-in options for readers
-OPTIONS = {
-    "erddap": {"known_server": ["ioos", "coastwatch"]},
-    "axds": {"axds_type": ["platform2", "layer_group"]},
-}
 
 # Available keys for Gateway
 keys_kwargs = [

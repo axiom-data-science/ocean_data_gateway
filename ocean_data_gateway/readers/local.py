@@ -12,7 +12,7 @@ import pandas as pd
 
 import ocean_data_gateway as odg
 
-from ocean_data_gateway import Reader
+from ocean_data_gateway.readers.data_reader import DataReader
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 reader = "local"
 
 
-class LocalReader(Reader):
+class LocalReader(DataReader):
     """
     This class searches local files.
 
@@ -46,6 +46,8 @@ class LocalReader(Reader):
     TO DO: Can this reader be used for remote datasets but for
     which we know the specific file location?
     """
+
+    source_name = "local"
 
     def __init__(self, parallel=True, catalog_name=None, filenames=None, kw=None):
         """
@@ -256,9 +258,6 @@ class LocalReader(Reader):
                     self._meta.loc[dataset_id, list(meta.metadata.keys())] = list(
                         meta.metadata.values()
                     )
-                    # self._meta.loc[dataset_id][meta.metadata.keys()] = meta.metadata.values()
-                    # data.append([meta.urlpath] + list(meta.metadata.values()))
-                # self._meta = pd.DataFrame(index=self.dataset_ids, columns=columns, data=data)
 
         return self._meta
 
@@ -280,23 +279,6 @@ class LocalReader(Reader):
         #         data = data.set_index('time')
         #         data = data[self.kw['min_time']:self.kw['max_time']]
         return data
-        # return (dataset_id, data)
-
-    #         return (dataset_id, self.catalog[dataset_id].read())
-
-    # @property
-    def data(self, dataset_ids=None):
-        """Read in data for some or all dataset_ids.
-
-        NOT USED CURRENTLY
-
-        Once data is read in for a dataset_ids, it is remembered.
-
-        See full documentation in `utils.load_data()`.
-        """
-
-        output = odg.utils.load_data(self, dataset_ids)
-        return output
 
 
 class region(LocalReader):
