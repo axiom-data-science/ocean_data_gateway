@@ -3,20 +3,25 @@
 """Abstract base class for a reader capable of loading data"""
 import multiprocessing
 
+import joblib
+
 from ocean_data_gateway.readers import Reader
 
 
 class DataReader(Reader):
     """Abstract base class for a reader capable of loading data."""
 
-    def data(self, dataset_ids=None):
+    def data(self, dataset_ids=None) -> dict:
+        """Loads data for the given dataset IDs."""
         return self.load_data(dataset_ids)
 
     def data_by_dataset(self, dataset_ids=None):
         """Abstract method"""
-        raise NotImplementedError("method data_by_dataset is not implemented in abstract base class.")
+        raise NotImplementedError(
+            "method data_by_dataset is not implemented in abstract base class."
+        )
 
-    def load_data(self, dataset_ids=None):
+    def load_data(self, dataset_ids=None) -> dict:
         """Read in data for readers some or all dataset_ids.
 
         Once data is read in for a dataset_ids, it is remembered. This is used in
@@ -82,8 +87,9 @@ class DataReader(Reader):
 
             if self.parallel:
                 num_cores = multiprocessing.cpu_count()
-                downloads = Parallel(n_jobs=num_cores)(
-                    delayed(self.data_by_dataset)(dataid) for dataid in dataset_ids_to_use
+                downloads = joblib.Parallel(n_jobs=num_cores)(
+                    joblib.delayed(self.data_by_dataset)(dataid)
+                    for dataid in dataset_ids_to_use
                 )
                 for dataid, download in zip(dataset_ids_to_use, downloads):
                     self._data[dataid] = download

@@ -17,8 +17,10 @@ import requests
 import xarray as xr
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import utils
 from ocean_data_gateway.readers import DataReader
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +58,9 @@ class AxdsReader(DataReader):
     reader: string
         Reader name: AxdsReader
     """
+
     default_options = {"axds_type": ["platform2", "layer_group"]}
-    source_name = 'axds'
+    source_name = "axds"
 
     def __init__(
         self, parallel=True, catalog_name=None, axds_type="platform2", filetype="netcdf"

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # search.LocalReader.reader
 reader = "local"
 
+
 class LocalReader(DataReader):
     """
     This class searches local files.
@@ -45,8 +46,8 @@ class LocalReader(DataReader):
     TO DO: Can this reader be used for remote datasets but for
     which we know the specific file location?
     """
-    source_name = 'local'
 
+    source_name = "local"
 
     def __init__(self, parallel=True, catalog_name=None, filenames=None, kw=None):
         """

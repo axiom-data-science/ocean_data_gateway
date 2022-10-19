@@ -47,3 +47,10 @@ def fetch_criteria(url: str) -> dict:
     response = requests.get(url)
     response.raise_for_status()
     return response.json()
+
+
+def return_response(url: str):
+    """Deprecated"""
+    raise DeprecationWarning(
+        "return_response is deprecated. use fetch_criteria instead"
+    )

@@ -4,18 +4,22 @@ Reader for ERDDAP servers.
 
 import logging
 import multiprocessing
-from typing import Optional
 import urllib.parse
+
+from typing import Optional
 
 import cf_xarray  # noqa: F401
 import pandas as pd
 import xarray as xr
+
 from erddapy import ERDDAP
 from joblib import Parallel, delayed
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import utils
 from ocean_data_gateway.readers import DataReader
+
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +55,18 @@ class ErddapReader(DataReader):
     reader: string
         reader is defined as "ErddapReader".
     """
-    default_options = {"known_server": ["ioos", "coastwatch"]}
-    source_name = 'erddap'
 
-    def __init__(self, known_server="ioos", protocol=None, server=None, parallel=False, erddap_client_class: Optional[type] = None):
+    default_options = {"known_server": ["ioos", "coastwatch"]}
+    source_name = "erddap"
+
+    def __init__(
+        self,
+        known_server="ioos",
+        protocol=None,
+        server=None,
+        parallel=False,
+        erddap_client_class: Optional[type] = None,
+    ):
         """
         Parameters
         ----------

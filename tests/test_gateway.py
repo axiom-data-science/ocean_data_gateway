@@ -6,9 +6,11 @@ import pandas as pd
 import pint_xarray
 import pytest
 import xarray as xr
+
 from make_test_files import make_local_netcdf
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import readers
 from ocean_data_gateway.gateway import Gateway
 from ocean_data_gateway.readers import DataReader, ErddapReader
@@ -16,6 +18,7 @@ from ocean_data_gateway.readers.axds import stations as axds_stations
 from ocean_data_gateway.readers.erddap import region as erddap_region
 from ocean_data_gateway.readers.erddap import stations as erddap_stations
 from ocean_data_gateway.readers.local import stations as local_stations
+
 
 from cf_xarray.units import units  # isort:skip
 
@@ -83,7 +86,6 @@ def test_qc_error():
 
     with pytest.raises(AssertionError):
         assert (data.qc()[fname]["temperature_qc"] == np.ones(10)).all()
-
 
 
 def test_default_sources():

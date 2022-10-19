@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .utils import (  # isort:skip  # noqa: E402, F401
     resample_like,
+    fetch_criteria,
 )
 
 

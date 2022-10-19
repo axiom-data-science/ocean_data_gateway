@@ -3,10 +3,11 @@
 """
 Readers available for ocean_data_gateway.
 """
-from .reader import Reader
+from .axds import AxdsReader
 from .data_reader import DataReader
 from .erddap import ErddapReader
-from .axds import AxdsReader
 from .local import LocalReader
+from .reader import Reader
+
 
 __all__ = ["Reader", "DataReader", "ErddapReader", "AxdsReader", "LocalReader"]

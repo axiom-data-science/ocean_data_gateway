@@ -9,12 +9,15 @@ import cf_xarray
 import pandas as pd
 import pint_xarray
 import xarray as xr
+
 from cf_xarray.units import units
 from ioos_qc.config import QcConfig
 
 import ocean_data_gateway as odg
+
 from ocean_data_gateway import utils
 from ocean_data_gateway.readers import DataReader, Reader
+
 
 pint_xarray.unit_registry = units
 
@@ -33,6 +36,7 @@ class Gateway(Reader):
     kwargs: dict
         Keyword arguments that contain specific arguments for the readers.
     """
+
     reader_default_options = {
         "erddap": {"known_server": ["ioos", "coastwatch"]},
         "axds": {"axds_type": ["platform2", "layer_group"]},
@@ -214,7 +218,9 @@ class Gateway(Reader):
             reader_values = [reader_values]
         return reader_key, reader_values
 
-    def _sanitize_variables(self, source: ModuleType, reader_values: List[Any]) -> List[Any]:
+    def _sanitize_variables(
+        self, source: ModuleType, reader_values: List[Any]
+    ) -> List[Any]:
         """Return a list of sanitized variables. Returns a list of None if no variables specified."""
         # catch if the user is putting in a set of variables to match
         # the set of reader options
@@ -228,14 +234,14 @@ class Gateway(Reader):
         #                         variables_values
         # catch scenario where variables input to all readers at once
         elif "variables" in self.kwargs_all:
-            variables_values = [self.kwargs_all["variables"]] * len(
-                reader_values
-            )
+            variables_values = [self.kwargs_all["variables"]] * len(reader_values)
         else:
             variables_values = [None] * len(reader_values)
         return variables_values
 
-    def _initialize_reader(self, source: ModuleType, option: Any, reader_key: str, variables: List[str]) -> DataReader:
+    def _initialize_reader(
+        self, source: ModuleType, option: Any, reader_key: str, variables: List[str]
+    ) -> DataReader:
         """Return the initialized reader using appropriate args."""
         # setup reader with kwargs for that reader
         # prioritize input kwargs over default args
@@ -273,10 +279,10 @@ class Gateway(Reader):
                 reader_key, reader_values = self._find_reader(source)
                 variables_values = self._sanitize_variables(source, reader_values)
 
-                for option, variables in zip(
-                    reader_values, variables_values
-                ):
-                    reader = self._initialize_reader(source, option, reader_key, variables)
+                for option, variables in zip(reader_values, variables_values):
+                    reader = self._initialize_reader(
+                        source, option, reader_key, variables
+                    )
                     sources.append(reader)
 
             self._sources = sources

@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+
 from pathlib import Path
 from typing import Generator, Optional
 
@@ -11,38 +12,44 @@ import xarray as xr
 
 import ocean_data_gateway as odg
 
+
 # Makes type annotations clearer
 Fixture = Generator
 
 
 class MockErddap:
     """A mock ERDDAP client."""
+
     tmpdir = None
 
-    def __init__(self, server: str, protocol: Optional[str] = None, response: str = 'html'):
+    def __init__(
+        self, server: str, protocol: Optional[str] = None, response: str = "html"
+    ):
         """Mock init."""
         pass
 
-    def get_search_url(self, *args, search_for: str = 'noaa_co_ops_8771013', **kwargs) -> str:
-        fd, name = tempfile.mkstemp(dir=self.tmpdir, suffix='.csv')
-        templ = (Path(__file__).parent / 'data/search.csv').read_text()
-        data = templ.replace('DATASET_ID', search_for)
-        with os.fdopen(fd, 'r+') as f:
+    def get_search_url(
+        self, *args, search_for: str = "noaa_co_ops_8771013", **kwargs
+    ) -> str:
+        fd, name = tempfile.mkstemp(dir=self.tmpdir, suffix=".csv")
+        templ = (Path(__file__).parent / "data/search.csv").read_text()
+        data = templ.replace("DATASET_ID", search_for)
+        with os.fdopen(fd, "r+") as f:
             f.write(data)
         return name
 
     def get_info_url(self, *args, **kwargs) -> str:
-        return str(Path(__file__).parent / 'data/info.csv')
+        return str(Path(__file__).parent / "data/info.csv")
 
     def get_download_url(self, *args, **kwargs) -> str:
-        return 'http://blahblah'
+        return "http://blahblah"
 
     def to_xarray(self, *args, **kwargs) -> pd.DataFrame:
-        return load_testdata('co_ops_8771013.nc')
+        return load_testdata("co_ops_8771013.nc")
 
 
 def load_testdata(key: str) -> xr.Dataset:
-    pth = Path(__file__).parent / f'data/{key}'
+    pth = Path(__file__).parent / f"data/{key}"
     return xr.open_dataset(pth)
 
 
@@ -58,7 +65,12 @@ def mock_erddap_client() -> Fixture[MockErddap, None, None]:
 
 
 def test_station_ioos_1dataset_id_alltime(mock_erddap_client):
-    station = odg.erddap.stations({"stations": "noaa_nos_co_ops_8771013", "erddap_client_class": mock_erddap_client})
+    station = odg.erddap.stations(
+        {
+            "stations": "noaa_nos_co_ops_8771013",
+            "erddap_client_class": mock_erddap_client,
+        }
+    )
     assert station.kw == {"min_time": "1900-01-01", "max_time": "2100-12-31"}
     assert station.dataset_ids == ["noaa_nos_co_ops_8771013"]
 
