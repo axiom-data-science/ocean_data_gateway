@@ -19,7 +19,7 @@ import xarray as xr
 import ocean_data_gateway as odg
 
 from ocean_data_gateway import utils
-from ocean_data_gateway.readers import DataReader
+from ocean_data_gateway.readers.data_reader import DataReader
 
 
 logger = logging.getLogger(__name__)

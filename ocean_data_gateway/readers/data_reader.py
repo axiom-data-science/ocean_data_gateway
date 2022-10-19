@@ -5,7 +5,7 @@ import multiprocessing
 
 import joblib
 
-from ocean_data_gateway.readers import Reader
+from ocean_data_gateway.readers.reader import Reader
 
 
 class DataReader(Reader):
